@@ -1,0 +1,6 @@
+backend
+npm init
+
+jwt
+node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+Form-data in postman wont work so add - import fileUpload from 'express-fileupload'; and App.use()
