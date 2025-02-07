@@ -2,9 +2,7 @@ import mongoose from "mongoose";
 
 
 const todoSchema=new mongoose.Schema({
-    userId: String,
-    text: String,
-    completed: Boolean,
+
 
       userId:{
             type:String,
@@ -14,6 +12,7 @@ const todoSchema=new mongoose.Schema({
             
             type: String,
             required: true,
+            unique: true
         
         },
         completed:{

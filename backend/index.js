@@ -76,13 +76,21 @@ app.post('/todos', async (req, res) => {
 // Update Todo
 app.put('/todos/:id', async (req, res) => {
   const { userId } = jwt.verify(req.headers.authorization, process.env.JWT_SECRET);
+  
+ 
+  const updateFields = {};
+  if (req.body.text !== undefined) updateFields.text = req.body.text;
+  if (req.body.completed !== undefined) updateFields.completed = req.body.completed;
+
   const todo = await Todo.findOneAndUpdate(
     { _id: req.params.id, userId },
-    { text: req.body.text, completed: req.body.completed },
+    updateFields,
     { new: true }
   );
+  console.log(todo)
   res.json(todo);
 });
+
 
 // Delete Todo
 app.delete('/todos/:id', async (req, res) => {
