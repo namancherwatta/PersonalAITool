@@ -1,0 +1,47 @@
+{
+    "tasks": [
+      { "id": 1, "name": "Buy groceries", "completed": false, "date": "2025-02-12" },
+      { "id": 2, "name": "Complete project report", "completed": true, "date": "2025-02-10" }
+    ],
+    "emails": [
+      { "subject": "Welcome to Gmail", "snippet": "Your new Gmail account is ready to use." },
+      { "subject": "Meeting Reminder", "snippet": "Don't forget our meeting at 3 PM tomorrow." }
+    ],
+    "events": [
+      { "title": "Doctor's Appointment", "date": "2025-02-15", "time": "10:00 AM" },
+      { "title": "Team Standup", "date": "2025-02-14", "time": "9:00 AM" }
+    ],
+    "health": {
+      "records": [
+        {
+          "date": "2025-02-01",
+          "bloodPressure": "120/80",
+          "heartRate": "75 bpm",
+          "sugarLevel": "90 mg/dL"
+        },
+        {
+          "date": "2025-02-05",
+          "bloodPressure": "130/85",
+          "heartRate": "80 bpm",
+          "sugarLevel": "95 mg/dL"
+        }
+      ],
+      "doctors": [
+        {
+          "name": "Dr. Smith",
+          "specialization": "Cardiologist",
+          "contact": "123-456-7890",
+          "lastVisit": "2025-01-10",
+          "prescriptions": ["Vitamin D", "Metformin"]
+        },
+        {
+          "name": "Dr. Johnson",
+          "specialization": "Endocrinologist",
+          "contact": "987-654-3210",
+          "lastVisit": "2024-12-20",
+          "prescriptions": ["Insulin", "Omega-3"]
+        }
+      ]
+    }
+  }
+  
