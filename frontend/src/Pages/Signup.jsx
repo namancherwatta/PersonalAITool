@@ -1,22 +1,23 @@
 import React, { useState } from "react";
 import axios from "axios";
-
+import toast from 'react-hot-toast'
 const Signup = ({ setUser, setShowSignup }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [number, setNumber] = useState("");
+  const [phone, setNumber] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
-  const handleSignup = async () => {
+  
+  const handleSignup = async (e) => {
+    e.preventDefault()
     try {
-      const response = await axios.post("/api/signup", {
+      const response = await axios.post("http://localhost:4001/register", {
         name,
         email,
-        number,
+        phone,
         password,
       });
-      setUser(response.data);
+      toast.success(data.message || 'User registered successfully')
       setShowSignup(false);
     } catch (err) {
       setError("Signup failed. Try again.");
@@ -24,10 +25,20 @@ const Signup = ({ setUser, setShowSignup }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center">
-      <div className="bg-white p-6 rounded-lg shadow-md w-80">
+    <div
+      className="fixed inset-0 bg-gray-900 bg-opacity-50 flex justify-center items-center"
+      onClick={() => setShowSignup(false)}
+    >
+      <div className="bg-white p-6 rounded-lg shadow-md w-80 relative" onClick={(e) => e.stopPropagation()}>
+        <button
+          className="absolute top-2 right-2 text-gray-600 hover:text-black"
+          onClick={() => setShowSignup(false)}
+        >
+          &times;
+        </button>
         <h2 className="text-xl font-semibold mb-4">Sign Up</h2>
         {error && <p className="text-red-500">{error}</p>}
+        <form onSubmit={handleSignup}>
         <input
           type="text"
           placeholder="Name"
@@ -46,7 +57,7 @@ const Signup = ({ setUser, setShowSignup }) => {
           type="text"
           placeholder="Phone Number"
           className="border rounded p-2 w-full mb-2"
-          value={number}
+          value={phone}
           onChange={(e) => setNumber(e.target.value)}
         />
         <input
@@ -58,10 +69,10 @@ const Signup = ({ setUser, setShowSignup }) => {
         />
         <button
           className="bg-green-500 text-white rounded px-4 py-2 w-full"
-          onClick={handleSignup}
         >
           Sign Up
         </button>
+        </form>
       </div>
     </div>
   );

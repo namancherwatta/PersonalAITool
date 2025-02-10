@@ -29,17 +29,23 @@ try {
 }
 
 // User Registration
-app.post('/register', async (req, res) => {
-  const { email, password,name,phone } = req.body;
-// console.log(req.body)
-  if (!email || !password ||!name || !phone) {
-    return res.status(400).json({ message: 'All fields are required' });
+app.post("/register", async (req, res) => {
+  try {
+    const { email, password, name, phone } = req.body;
+    console.log(req.body);
+    if (!email || !password || !name || !phone) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+    const hashedPassword = await bcryptjs.hash(password, 10);
+    const user = new User({ name, email, phone, password: hashedPassword });
+    await user.save();
+    res.json({ message: "User registered successfully" });
+  } catch (error) {
+    console.error("Error registering user:", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
-  const hashedPassword = await bcryptjs.hash(password, 10);
-  const user = new User({ name, email, phone, password: hashedPassword });
-  await user.save();
-  res.json({ message: 'User registered successfully' });
 });
+
 
 // User Login
 app.post('/login', async (req, res) => {
@@ -51,8 +57,8 @@ app.post('/login', async (req, res) => {
   const user = await User.findOne({ email }).select("+password");
   console.log(user)
   if (user && (await bcryptjs.compare(password, user.password))) {
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token });
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.json({ token,userid:user._id, name: user.name });
   } else {
     res.status(400).json({ message: 'Invalid credentials' });
   }

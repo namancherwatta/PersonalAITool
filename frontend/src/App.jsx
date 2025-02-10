@@ -1,7 +1,7 @@
 
 import './App.css'
 
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
 import TodoList  from "./components/TodoList";
@@ -16,15 +16,26 @@ const App = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
 
+  useEffect(() => {
+    const savedToken = localStorage.getItem("token");
+    const savedUser = localStorage.getItem("user");
+   console.log(savedToken,savedUser)
+    if (savedToken && savedUser) {
+      setUser({ token: savedToken, userId: JSON.parse(savedUser).userId,name:JSON.parse(savedUser).username }); 
+    }
+  }, []);
+
+ 
+  
   return (
-    <div className="min-h-screen bg-gray-100">
-      <Navbar setShowLogin={setShowLogin} setShowSignup={setShowSignup} user={user} />
+    <div className="min-h-screen bg-gray-100 py-10">
+      <Navbar setShowLogin={setShowLogin} setShowSignup={setShowSignup} user={user} setUser={setUser} />
       
       {showLogin && <Login setUser={setUser} setShowLogin={setShowLogin} />}
       {showSignup && <Signup setUser={setUser} setShowSignup={setShowSignup} />}
-
+      
       <div className="container mx-auto p-4 grid grid-cols-3 gap-4">
-        <div className="col-span-1">
+        <div className="col-span-1 ">
           <GmailSection user={user} dummyEmails={dummyData.emails} />
         </div>
         <div className="col-span-1">
