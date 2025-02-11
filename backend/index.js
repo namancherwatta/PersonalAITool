@@ -8,14 +8,25 @@ import cookieParser from 'cookie-parser'
 import { User } from "./model/user.model.js"
 import { Todo } from './model/toDo.model.js';
 import fileUpload from 'express-fileupload';
-
-
+import { OAuth2Client } from "google-auth-library";
+import { google } from "googleapis";
+import axios from "axios"
 
 dotenv.config();
 
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const REDIRECT_URI = "http://localhost:5000/auth/google/callback";
+
+const oauth2Client = new google.auth.OAuth2(
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
+  REDIRECT_URI
+);
+
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({ origin: "http://localhost:5173", credentials: true }));
 app.use(cookieParser())
 app.use(fileUpload({useTempFiles: true,tempFileDir: "/tmp/",}));
 const port = process.env.port|| 10000
@@ -105,6 +116,124 @@ app.delete('/todos/:id', async (req, res) => {
   res.json({ message: 'Todo deleted' });
 });
 
+app.post("/auth/google", async (req, res) => {
+  const { token } = req.body;
+  const client = new OAuth2Client(GOOGLE_CLIENT_ID);
+
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    res.json({ user: payload, access_token: token });
+  } catch (error) {
+    res.status(400).json({ error: "Invalid token" });
+  }
+});
+
+app.get("/emails", async (req, res) => {
+  const auth = new google.auth.OAuth2();
+  console.log("Access Token Sent:", req.headers.authorization);
+  auth.setCredentials({ access_token: req.headers.authorization });
+  const gmail = google.gmail({ version: "v1", auth });
+
+  try {
+    const response = await gmail.users.messages.list({
+      userId: "me",
+      maxResults: 10,
+    });
+
+    const messages = response.data.messages || [];
+    const emailDetails = [];
+
+    for (let msg of messages) {
+      let message = await gmail.users.messages.get({
+        userId: "me",
+        id: msg.id,
+      });
+
+      emailDetails.push(message.data);
+    }
+    res.json(emailDetails);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// app.post("/send-email", async (req, res) => {
+//   const { to, subject, message, access_token } = req.body;
+//   // console.log(to,subject,message,access_token)
+//   const auth = new google.auth.OAuth2();
+//   auth.setCredentials({ access_token : access_token});
+
+//   const gmail = google.gmail({ version: "v1", auth });
+
+//   const email = `
+//     To: ${to}
+//     Subject: ${subject}
+
+//     ${message}
+//   `;
+//   console.log(email)
+//   const encodedMessage = Buffer.from(email).toString("base64");
+
+//   try {
+//     await gmail.users.messages.send({
+//       userId: "me",
+//       requestBody: { raw: encodedMessage },
+//     });
+
+//     res.json({ success: true });
+//   } catch (error) {
+//     console.log(error)
+//     res.status(500).json({ error: error.message });
+//   }
+// });
+
+app.post("/send-email", async (req, res) => {
+  try {
+    const { to, subject, message, access_token,inReplyTo, references,threadId } = req.body;
+
+    if (!to) {
+      return res.status(400).json({ error: "Recipient address required" });
+    }
+
+    const rawEmail = [
+      `To: ${to}`,
+      "From: your-email@gmail.com",
+      `Subject: ${subject}`,
+      inReplyTo ? `In-Reply-To: ${inReplyTo}` : "",
+      references ? `References: ${references}` : "",
+      "",
+      message,
+    ].join("\n");
+
+    const encodedEmail = Buffer.from(rawEmail)
+      .toString("base64")
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_");
+
+      const emailPayload = { raw: encodedEmail };
+      if (threadId) {
+        emailPayload.threadId = threadId; 
+      }
+
+      const response = await axios.post(
+        "https://gmail.googleapis.com/gmail/v1/users/me/messages/send",
+        emailPayload,
+        {
+          headers: { Authorization: `Bearer ${access_token}` },
+        }
+      );
+
+    res.json({ message: "Email sent successfully", response: response.data });
+  } catch (error) {
+    console.error("Error sending email:", error.response?.data || error.message);
+    res.status(500).json({ error: "Failed to send email" });
+  }
+});
 
 
 app.listen(port, () => {
