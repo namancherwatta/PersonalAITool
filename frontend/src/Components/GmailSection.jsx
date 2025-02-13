@@ -186,7 +186,25 @@ const GmailSection = ({ userEmail, dummyEmails,setGoogleToken,onLogout }) => {
         )}
       </div>
     </>
-  ) : null}
+  ) : <>
+  <div className="overflow-y-auto h-80 border p-2 rounded bg-gray-50">
+    {dummyEmails && dummyEmails.length > 0 ? (
+      dummyEmails.map((email, index) => (
+        <div key={index} className="border-b p-3">
+          <div className="flex justify-between text-sm font-semibold">
+            <span className="truncate">{email.sender}</span>
+            <span className="truncate text-gray-700 text-right">{email.subject}</span>
+          </div>
+          <div className="flex justify-between text-sm text-gray-500 mt-1">
+            <span className="truncate">{shortenContent(email.content)}</span>
+          </div>
+        </div>
+      ))
+    ) : (
+      <p className="text-gray-500 text-center">No dummy emails available.</p>
+    )}
+  </div>
+  </>}
 </div>
 
   );

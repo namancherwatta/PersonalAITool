@@ -96,7 +96,7 @@ const CalendarSection = ({ googleToken, dummyEvents }) => {
                 </div>
               ))
             ) : (
-              <p className="text-gray-500">No events found. Displaying dummy events:</p>
+              <p className="text-gray-500">No events found.</p>
             )}
 
             {!googleToken &&
@@ -158,7 +158,21 @@ const CalendarSection = ({ googleToken, dummyEvents }) => {
           </form>
         </>
       ) : (
-        <p className="text-gray-500">Please login to view and create calendar events.</p>
+        <div className="overflow-y-auto h-60 border p-2 rounded">
+        {dummyEvents && dummyEvents.length > 0 ? (
+          dummyEvents.map((event, index) => (
+            <div key={index} className="border-b p-2">
+              <p className="font-semibold">{event.summary}</p>
+              <p className="text-xs text-gray-600">
+                {new Date(event.start).toLocaleString()} - {new Date(event.end).toLocaleString()}
+              </p>
+              <p className="text-xs text-gray-500">{event.description}</p>
+            </div>
+          ))
+        ) : (
+          <p className="text-gray-500">No dummy events available.</p>
+        )}
+      </div>
       )}
     </div>
   );
