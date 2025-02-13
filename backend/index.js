@@ -162,7 +162,6 @@ app.get("/emails", async (req, res) => {
   }
 });
 
-// app.post("/send-email", async (req, res) => {
 //   const { to, subject, message, access_token } = req.body;
 //   // console.log(to,subject,message,access_token)
 //   const auth = new google.auth.OAuth2();
@@ -234,6 +233,77 @@ app.post("/send-email", async (req, res) => {
     res.status(500).json({ error: "Failed to send email" });
   }
 });
+
+app.get('/events', async (req, res) => {
+  const access_token = req.headers.authorization;
+  console.log("Access Token Received:", access_token);
+
+  if (!access_token) {
+    return res.status(401).json({ error: 'Access token required' });
+  }
+
+  try {
+    const response = await axios.get(
+      'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+      {
+        headers: {
+          Authorization: `Bearer ${access_token}`,
+        },
+        params: {
+          maxResults: 10, 
+          orderBy: 'startTime',
+          singleEvents: true,
+          timeMin: new Date().toISOString(), 
+        },
+      }
+    );
+
+    res.status(200).json(response.data.items);
+  } catch (error) {
+    console.error('Error fetching calendar events:', error.response?.data || error.message);
+    res.status(500).json({ error: error.response?.data || error.message });
+  }
+});
+
+
+
+
+app.post('/create-event', async (req, res) => {
+  const { accessToken, summary, description, startTime, endTime, attendees } = req.body;
+
+  const auth = new google.auth.OAuth2();
+  auth.setCredentials({ access_token: accessToken });
+
+  const calendar = google.calendar({ version: 'v3', auth });
+
+  try {
+    const event = await calendar.events.insert({
+      calendarId: 'primary',
+      resource: {
+        summary,
+        description,
+        start: {
+          dateTime: `${startTime}:00`,
+          timeZone: 'Asia/Kolkata', 
+        },
+        end: {
+          dateTime: `${endTime}:00`, 
+          timeZone: 'Asia/Kolkata',
+        },
+        attendees: attendees.map((email) => ({ email })),
+        guestsCanInviteOthers: true,
+        guestsCanModify: true,
+      },
+      sendUpdates: 'all',
+    });
+
+    res.json(event.data);
+  } catch (error) {
+    console.error('Failed to create event:', error.response?.data || error.message);
+    res.status(500).json({ error: error.response?.data || error.message });
+  }
+});
+
 
 
 app.listen(port, () => {

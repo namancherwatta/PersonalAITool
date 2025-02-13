@@ -1,6 +1,6 @@
 
 import './App.css'
-import React, { useState,useEffect } from "react";
+import React, { useState,useEffect, use } from "react";
 import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
 import TodoList  from "./components/TodoList";
@@ -16,11 +16,13 @@ const App = () => {
   const [user, setUser] = useState(null);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
+  const [googleToken,setGoogleToken]=useState(null);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
     const savedUser = localStorage.getItem("user");
-   console.log(savedToken,savedUser)
+  //  console.log(savedToken,savedUser)
+   console.log(googleToken)
     if (savedToken && savedUser) {
       setUser({ token: savedToken, userId: JSON.parse(savedUser).userId,name:JSON.parse(savedUser).username }); 
     }
@@ -39,13 +41,13 @@ const App = () => {
       
       <div className="container mx-auto p-4 grid grid-cols-7 mt-10 gap-4">
         <div className="col-span-3 ">
-          <GmailSection user={user} dummyEmails={dummyData.emails} />
+          <GmailSection user={user} dummyEmails={dummyData.emails} setGoogleToken={setGoogleToken} onLogout={() => setGoogleToken(null)} />
         </div>
         <div className="col-span-2">
           <TodoList user={user} />
         </div>
         <div className="col-span-2">
-          <CalendarSection user={user} dummyEvents={dummyData.events} />
+          <CalendarSection user={user} dummyEvents={dummyData.events} googleToken={googleToken}/>
         </div>
       </div>
 

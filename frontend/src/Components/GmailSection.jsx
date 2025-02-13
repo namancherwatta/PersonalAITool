@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { googleLogout, useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 
-const GmailSection = ({ userEmail }) => {
+const GmailSection = ({ userEmail, dummyEmails,setGoogleToken,onLogout }) => {
   const [emails, setEmails] = useState([]);
   const [token, setToken] = useState(null);
   const [replyTo, setReplyTo] = useState("");
@@ -17,8 +17,10 @@ const GmailSection = ({ userEmail }) => {
       localStorage.setItem("gmail_token", tokenResponse.access_token);
       fetchEmails(tokenResponse.access_token);
       setToken(tokenResponse.access_token);
+      setGoogleToken(tokenResponse.access_token)
+    
     },
-    scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send",
+    scope: "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/calendar.events",
   });
 
   const fetchEmails = async (accessToken) => {
@@ -39,6 +41,7 @@ const GmailSection = ({ userEmail }) => {
     setToken(null);
     localStorage.removeItem("gmail_token");
     setEmails([]);
+    if (onLogout) onLogout(); 
   };
 
   const handleReply = async () => {
@@ -74,6 +77,8 @@ const GmailSection = ({ userEmail }) => {
     if (savedToken) {
       setToken(savedToken);
       fetchEmails(savedToken);
+      setGoogleToken(savedToken)
+      
     }
   }, []);
 
