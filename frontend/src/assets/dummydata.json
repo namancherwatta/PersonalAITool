@@ -36,7 +36,9 @@
       }
     ],
     
-    "health": {
+    
+   "health": [
+    {
       "records": [
         {
           "date": "2025-02-01",
@@ -49,24 +51,40 @@
           "bloodPressure": "130/85",
           "heartRate": "80 bpm",
           "sugarLevel": "95 mg/dL"
-        }
-      ],
-      "doctors": [
-        {
-          "name": "Dr. Smith",
-          "specialization": "Cardiologist",
-          "contact": "123-456-7890",
-          "lastVisit": "2025-01-10",
-          "prescriptions": ["Vitamin D", "Metformin"]
         },
         {
-          "name": "Dr. Johnson",
-          "specialization": "Endocrinologist",
-          "contact": "987-654-3210",
-          "lastVisit": "2024-12-20",
-          "prescriptions": ["Insulin", "Omega-3"]
+          "date": "2025-02-10",
+          "bloodPressure": "122/82",
+          "heartRate": "90 bpm",
+          "sugarLevel": "100 mg/dL"
+        }
+      ],
+      "visits": [
+        {
+          "date": "2025-01-10",
+          "doctorName": "Dr. Smith",
+          "reason": "Routine Checkup",
+          "prescription": ["Vitamin D", "Metformin"]
+        },
+        {
+          "date": "2024-12-20",
+          "doctorName": "Dr. Johnson",
+          "reason": "Diabetes Follow-up",
+          "prescription": ["Insulin", "Omega-3"]
+        },
+        {
+          "date": "2024-10-10",
+          "doctorName": "Dr. Mathew",
+          "reason": "Fever",
+          "prescription": ["Paracetomol","AntiBiotic"]
         }
       ]
     }
+    
+      ]
+    
+    
+    
+  
   }
   

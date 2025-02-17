@@ -3,13 +3,13 @@ import './App.css'
 import React, { useState,useEffect, use } from "react";
 import Login from "./Pages/Login";
 import Signup from "./Pages/Signup";
-import TodoList  from "./components/TodoList";
 import GmailSection from "./components/GmailSection";
 import CalendarSection from "./components/CalendarSection";
-import HealthBar from "./components/HealthBar";
 import dummyData from "./assets/dummydata.json"
 import Navbar from './Components/Navbar';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import HealthBar from './Components/HealthBar';
+import TodoList from './Components/Todolist';
 
 const App = () => {
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
