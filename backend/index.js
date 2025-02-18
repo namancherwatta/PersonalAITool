@@ -7,6 +7,8 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser'
 import { User } from "./model/user.model.js"
 import { Todo } from './model/toDo.model.js';
+import { HealthRecord } from './model/healthrecord.model.js';
+import { DoctorVisit } from './model/doctorvisit.model.js';
 import fileUpload from 'express-fileupload';
 import { OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
@@ -304,6 +306,63 @@ app.post('/create-event', async (req, res) => {
   }
 });
 
+// Get all health records and visits
+app.get('/health', async (req, res) => {
+  const { userId } = jwt.verify(req.headers.authorization, process.env.JWT_SECRET);
+  try {
+    console.log(userId)
+    const records = await HealthRecord.find({ userId });
+    const visits = await DoctorVisit.find({ userId });
+
+    res.json({ records, visits });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add a new health record
+app.post('/health/records', async (req, res) => {
+  const { userId } = jwt.verify(req.headers.authorization, process.env.JWT_SECRET);
+  try {
+    const record = new HealthRecord({ ...req.body, userId });
+    await record.save();
+    res.status(201).json(record);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a health record
+app.delete('/health/records/:id', async (req, res) => {
+  try {
+    await HealthRecord.findByIdAndDelete(req.params.id);
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Add a new doctor visit
+app.post('/health/visits', async (req, res) => {
+  const { userId } = jwt.verify(req.headers.authorization, process.env.JWT_SECRET);
+  try {
+    const visit = new DoctorVisit({ ...req.body, userId });
+    await visit.save();
+    res.status(201).json(visit);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete a doctor visit
+app.delete('/health/visits/:id', async (req, res) => {
+  try {
+    await DoctorVisit.findByIdAndDelete(req.params.id);
+    res.status(204).send();
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 
 app.listen(port, () => {

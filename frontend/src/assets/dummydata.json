@@ -40,19 +40,19 @@
    "health": [
     {
       "records": [
-        {
+        { "_id":1,
           "date": "2025-02-01",
           "bloodPressure": "120/80",
           "heartRate": "75 bpm",
           "sugarLevel": "90 mg/dL"
         },
-        {
+        { "_id":2,
           "date": "2025-02-05",
           "bloodPressure": "130/85",
           "heartRate": "80 bpm",
           "sugarLevel": "95 mg/dL"
         },
-        {
+        { "_id":3,
           "date": "2025-02-10",
           "bloodPressure": "122/82",
           "heartRate": "90 bpm",
@@ -60,19 +60,19 @@
         }
       ],
       "visits": [
-        {
+        { "_id":1,
           "date": "2025-01-10",
           "doctorName": "Dr. Smith",
           "reason": "Routine Checkup",
           "prescription": ["Vitamin D", "Metformin"]
         },
-        {
+        { "_id":2,
           "date": "2024-12-20",
           "doctorName": "Dr. Johnson",
           "reason": "Diabetes Follow-up",
           "prescription": ["Insulin", "Omega-3"]
         },
-        {
+        { "_id":3,
           "date": "2024-10-10",
           "doctorName": "Dr. Mathew",
           "reason": "Fever",

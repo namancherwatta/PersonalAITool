@@ -19,10 +19,8 @@ const HealthBar = ({ user, dummyHealthData }) => {
   });
   
   const [showForm, setShowForm] = useState(false);
-  const [showDeleteList, setShowDeleteList] = useState(false); 
-  const [deleteRecordId, setDeleteRecordId] = useState(null); 
+  const [showDeleteList, setShowDeleteList] = useState(false);
   const [showDeleteVisitList, setShowDeleteVisitList] = useState(false); 
-  const [deleteVisitId, setDeleteVisitId] = useState(null);
   const [showVisitForm, setShowVisitForm] = useState(false); 
 
   useEffect(() => {
@@ -38,7 +36,8 @@ const HealthBar = ({ user, dummyHealthData }) => {
       setHealthRecords(cleanHealthData(dummyHealthData[0].records));
       setDoctorVisits(dummyHealthData[0].visits);
     }
-  }, [user, dummyHealthData]);
+
+  }, [user]);
 
   const cleanHealthData = (records) => {
     return records.map((record) => ({
@@ -70,26 +69,33 @@ const HealthBar = ({ user, dummyHealthData }) => {
     if (user) {
       axios
         .post('http://localhost:4001/health/records', newRecord, { headers: { Authorization: user.token } })
-        .then((response) => setHealthRecords([...healthRecords, response.data]))
+        .then((response) => {
+          const cleanedRecord = cleanHealthData([response.data])[0]; 
+          setHealthRecords([...healthRecords, cleanedRecord]);
+        })
         .catch((error) => console.error('Error adding health record:', error));
     } else {
-      setHealthRecords([...healthRecords, newRecord]);
+      newRecord._id = Date.now();
+      const cleanedRecord = cleanHealthData([newRecord])[0];
+      setHealthRecords([...healthRecords, cleanedRecord]);
     }
 
-    setShowForm(false); 
+    setShowForm(false);
+    setFormData({ date: '', bloodPressure: '', heartRate: '', sugarLevel: '' }); 
   };
 
   const handleDeleteRecord = (recordId) => {
+    console.log(recordId)
     if (user) {
       axios
         .delete(`http://localhost:4001/health/records/${recordId}`, { headers: { Authorization: user.token } })
         .then(() => {
-          setHealthRecords(healthRecords.filter(record => record.id !== recordId));
+          setHealthRecords(healthRecords.filter(record => record._id !== recordId));
           setShowDeleteList(false);
         })
         .catch((error) => console.error('Error deleting health record:', error));
     } else {
-      setHealthRecords(healthRecords.filter(record => record.id !== recordId));
+      setHealthRecords(healthRecords.filter(record => record._id !== recordId));
       setShowDeleteList(false);
     }
   };
@@ -99,12 +105,12 @@ const HealthBar = ({ user, dummyHealthData }) => {
       axios
         .delete(`http://localhost:4001/health/visits/${visitId}`, { headers: { Authorization: user.token } })
         .then(() => {
-          setDoctorVisits(doctorVisits.filter(visit => visit.id !== visitId));
+          setDoctorVisits(doctorVisits.filter(visit => visit._id !== visitId));
           setShowDeleteVisitList(false);
         })
         .catch((error) => console.error('Error deleting doctor visit:', error));
     } else {
-      setDoctorVisits(doctorVisits.filter(visit => visit.id !== visitId));
+      setDoctorVisits(doctorVisits.filter(visit => visit._id !== visitId));
       setShowDeleteVisitList(false);
     }
   };
@@ -129,12 +135,19 @@ const HealthBar = ({ user, dummyHealthData }) => {
         .then((response) => setDoctorVisits([...doctorVisits, response.data]))
         .catch((error) => console.error('Error adding doctor visit:', error));
     } else {
+      newVisit._id = Date.now();
       setDoctorVisits([...doctorVisits, newVisit]);
     }
   
     setShowVisitForm(false);
+    setVisitFormData({
+      visitDate: '',
+      reason: '',
+      doctorName: '',
+      prescription: '',
+    });
   };
-
+ console.log(healthRecords)
 
   return (
     <div className="bg-white p-4 rounded shadow-md w-full">
@@ -222,6 +235,7 @@ const HealthBar = ({ user, dummyHealthData }) => {
               value={formData.bloodPressure}
               onChange={handleChange}
               className="border p-2 rounded w-full"
+              placeholder='Like : 120/80'
             />
           </div>
           <div>
@@ -233,6 +247,7 @@ const HealthBar = ({ user, dummyHealthData }) => {
               value={formData.heartRate}
               onChange={handleChange}
               className="border p-2 rounded w-full"
+              placeholder=" bpm"
             />
           </div>
           <div>
@@ -244,6 +259,7 @@ const HealthBar = ({ user, dummyHealthData }) => {
               value={formData.sugarLevel}
               onChange={handleChange}
               className="border p-2 rounded w-full"
+              placeholder=' mg/dL'
             />
           </div>
           <button type="submit" className="bg-green-500 text-white px-4 py-2 rounded">
@@ -260,10 +276,10 @@ const HealthBar = ({ user, dummyHealthData }) => {
           <h3 className="font-semibold mb-2">Select Record to Delete</h3>
           <ul>
             {healthRecords.map((record) => (
-              <li key={record.id} className="flex justify-between items-center border-b py-2">
+              <li key={record._id} className="flex justify-between items-center border-b py-2">
                 <span>{record.date}</span>
                 <button
-                  onClick={() => handleDeleteRecord(record.id)}
+                  onClick={() => handleDeleteRecord(record._id)}
                   className="bg-red-500 text-white px-2 py-1 rounded"
                 >
                   Delete
@@ -390,10 +406,10 @@ const HealthBar = ({ user, dummyHealthData }) => {
           <h3 className="font-semibold mb-2">Select Doctor Visit to Delete</h3>
           <ul>
             {doctorVisits.map((visit) => (
-              <li key={visit.id} className="flex justify-between items-center border-b py-2">
+              <li key={visit._id} className="flex justify-between items-center border-b py-2">
                 <span>{visit.date} - {visit.doctorName}</span>
                 <button
-                  onClick={() => handleDeleteVisit(visit.id)}
+                  onClick={() => handleDeleteVisit(visit._id)}
                   className="bg-red-500 text-white px-2 py-1 rounded"
                 >
                   Delete
