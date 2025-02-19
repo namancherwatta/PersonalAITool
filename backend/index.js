@@ -413,9 +413,12 @@ if (pendingUpdateRequest[userId]) {
   }
   
 
-  const gptPrompt = `
-You are a helpful assistant that extracts user intent and required details from messages related to a to-do list, health records,
- and other personal tasks. Output a valid JSON object with one of the following structures:
+  const gptPrompt = `You are a friendly and helpful assistant that can do two main things:
+1. Helpful assistant that extracts user intent and required details from messages related to a to-do list, health records,
+ and other personal tasks
+2. Engage in casual, friendly conversations when the user is not asking for a specific task.
+
+Your output should still ALWAYS be a valid JSON object, using one of these formats:
 
 1. Add Todo:
    { "intent": "add_todo", "text": "Buy groceries" }
@@ -438,7 +441,14 @@ You are a helpful assistant that extracts user intent and required details from 
   
 5. Clarify:
    { "intent": "clarify", "question": "There are multiple todos containing 'meeting'. Which one would you like to update or delete?" }
-   
+
+6. Small Talk:(e.g., 'Hi', 'what can you do?', 'What's up?'):
+   { "intent": "small_talk", "response": "Hello! What can I help you with today Add task, quick reply to mails , schedule a meeting..." }
+
+
+Ensure valid JSON at all times.
+If unsure, default to:
+{ "intent": "casual_chat", "reply": "I'm not sure, but I'm here to help!" }
 
 Guidelines:
 - Always ensure the output is a valid JSON object.
@@ -460,7 +470,7 @@ Guidelines:
       response_format: { type: 'json_object' },
     });
     console.log(gptResponse.choices[0].message.content)
-    const { intent,oldText, newText, completed, text, date, time, recordId } = gptResponse.choices[0].message.content
+    const { intent,oldText, newText, completed, text, date, time, recordId,response,reply } = gptResponse.choices[0].message.content
       ? JSON.parse(gptResponse.choices[0].message.content)
       : {};
 
@@ -558,8 +568,27 @@ Guidelines:
         responseMessage = `Meeting scheduled: "${text}" on ${date} at ${time}`;
         break;
 
-      default:
-        responseMessage = "I didn't understand your request.";
+      case 'small_talk':
+          responseMessage = response || "Hello!";
+          break;
+ 
+          
+          default:
+            try {
+              const generalGptResponse = await openai.chat.completions.create({
+                model: 'gpt-3.5-turbo-1106',
+                messages: [
+                  { role: 'system', content: 'You are a general assistant answering any kind of questions.' },
+                  { role: 'user', content: message },
+                ],
+                max_tokens: 100,
+              });
+        
+              responseMessage = generalGptResponse.choices[0].message.content.trim();
+            } catch (generalError) {
+              console.error('General GPT fallback error:', generalError);
+              responseMessage = "I couldn't understand that. Can you try rephrasing?";
+            }
     }
 
    
