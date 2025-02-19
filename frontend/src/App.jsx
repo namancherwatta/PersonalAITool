@@ -10,6 +10,7 @@ import Navbar from './Components/Navbar';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import HealthBar from './Components/HealthBar';
 import TodoList from './Components/Todolist';
+import Assistant from './Components/Assistant';
 
 const App = () => {
   const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
@@ -54,6 +55,10 @@ const App = () => {
       <div className="container mx-auto mt-4 p-4">
         <HealthBar user={user} dummyHealthData={dummyData.health} />
       </div>
+      <div className="fixed bottom-4 right-4 z-50">
+       <Assistant user={user} />
+      </div>
+
     </div>
     </GoogleOAuthProvider>
   );

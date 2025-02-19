@@ -13,12 +13,18 @@ import fileUpload from 'express-fileupload';
 import { OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
 import axios from "axios"
+import {OpenAI} from "openai"
+
 
 dotenv.config();
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI = "http://localhost:5000/auth/google/callback";
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 const oauth2Client = new google.auth.OAuth2(
   GOOGLE_CLIENT_ID,
@@ -361,6 +367,206 @@ app.delete('/health/visits/:id', async (req, res) => {
     res.status(204).send();
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+
+//Assistant
+let pendingUpdateRequest = {};
+app.post('/chat', async (req, res) => {
+  const { message } = req.body;
+  const { userId } = jwt.verify(req.headers.authorization, process.env.JWT_SECRET);
+  const authHeader = req.headers.authorization; 
+
+
+//For re responses  
+if (pendingUpdateRequest[userId]) {
+  const { matchingTodos, updateDetails, action } = pendingUpdateRequest[userId];
+
+    const selectedTodo = matchingTodos.find((todo) => todo.text.toLowerCase() === message.toLowerCase());
+  
+    if (!selectedTodo) {
+      return res.json({
+        reply: `Invalid selection. Please choose from: ${matchingTodos.map((t) => t.text).join(', ')}`,
+      });
+    }
+  
+    let responseMessage;
+  
+    if (action === 'updatetodo') {
+      const updateFields = {};
+      if (updateDetails.newText !== undefined) updateFields.text = updateDetails.newText;
+      if (updateDetails.completed !== undefined) updateFields.completed = updateDetails.completed;
+      console.log(selectedTodo._id,updateFields)
+      const updatedTodo = await Todo.findByIdAndUpdate(selectedTodo._id, updateFields, { new: true });
+      responseMessage = `Todo updated: "${updatedTodo.text}"`;
+    } else if (action === 'deletetodo') {
+      await Todo.findByIdAndDelete(selectedTodo._id);
+      responseMessage = `Deleted todo: "${selectedTodo.text}"`;
+    }else{
+      responseMessage="Sorry try again"
+    }
+  
+    delete pendingUpdateRequest[userId];
+  
+    return res.json({ reply: responseMessage });
+  }
+  
+
+  const gptPrompt = `
+You are a helpful assistant that extracts user intent and required details from messages related to a to-do list, health records,
+ and other personal tasks. Output a valid JSON object with one of the following structures:
+
+1. Add Todo:
+   { "intent": "add_todo", "text": "Buy groceries" }
+
+2. Update Todo:
+   For marking a todo as completed:
+   { "intent": "update_todo", "oldText": "Pay electricity bill", "completed": true }
+
+   For changing the todo text:
+   { "intent": "update_todo", "oldText": "Pay electricity bill", "newText": "Pay electricity bill on 23rd Feb" }
+
+   For updating both text and completion status:
+   { "intent": "update_todo", "oldText": "Pay electricity bill", "newText": "Pay electricity bill on 23rd Feb", "completed": true }
+
+3. Delete Todo:
+   { "intent": "delete_todo", "text": "Call the doctor" }
+
+4. Show Health Records:
+   { "intent": "show_health_records" }
+  
+5. Clarify:
+   { "intent": "clarify", "question": "There are multiple todos containing 'meeting'. Which one would you like to update or delete?" }
+   
+
+Guidelines:
+- Always ensure the output is a valid JSON object.
+- If the user wants to mark a task as done, set "completed": true.
+- If the user wants to change the text of a task, provide both "oldText" and "newText".
+- If both completion status and text change are mentioned, provide both fields.
+- If there is ambiguity (e.g., multiple matching tasks), return { "intent": "clarify", "question": "Your clarification question here" }.
+- If the intent is unclear, output { "intent": "unknown" }.
+`;
+
+  try {
+    const gptResponse = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo-1106',
+      messages: [
+        { role: 'system', content: gptPrompt },
+        { role: 'user', content: message },
+      ],
+      max_tokens: 100,
+      response_format: { type: 'json_object' },
+    });
+    console.log(gptResponse.choices[0].message.content)
+    const { intent,oldText, newText, completed, text, date, time, recordId } = gptResponse.choices[0].message.content
+      ? JSON.parse(gptResponse.choices[0].message.content)
+      : {};
+
+    console.log(`Detected Intent: ${intent}`, { text, date, time, recordId,oldText, newText, completed });
+
+
+    let responseMessage;
+
+    switch (intent) {
+      case 'add_todo':
+        const newTodo = new Todo({ userId, text, completed: false });
+        await newTodo.save();
+        responseMessage = `Todo added: "${text}"`;
+        break;
+
+      case 'update_todo':
+          const matchingTodos = await Todo.find({
+            userId,
+            text: { $regex: oldText, $options: 'i' },
+          });
+  
+          if (matchingTodos.length === 0) {
+            responseMessage = `No matching todo found for "${oldText}".`;
+          } else if (matchingTodos.length === 1) {
+            const updateFields = {};
+            if (newText !== undefined) updateFields.text = newText;
+            if (completed !== undefined) updateFields.completed = completed;
+  
+            const updatedTodo = await Todo.findByIdAndUpdate(matchingTodos[0]._id, updateFields, { new: true });
+  
+            responseMessage = `Todo updated: "${updatedTodo.text}"`;
+          } else {
+            pendingUpdateRequest[userId] = {
+              matchingTodos,
+              updateDetails: { newText, completed },
+              action:"updatetodo"
+            };
+  
+            responseMessage = `There are multiple todos matching "${oldText}". Which one would you like to update?\nMatches: ${matchingTodos.map((t) => t.text).join(', ')}`;
+          }
+          break; 
+        
+
+      case 'clarify':
+            responseMessage = `Clarification needed: ${question}`;
+            break;    
+
+      case 'delete_todo':
+              const matchingTodosToDelete = await Todo.find({
+                userId,
+                text: { $regex: text, $options: 'i' },
+              });
+            
+              if (matchingTodosToDelete.length === 0) {
+                responseMessage = `No matching todo found for "${text}".`;
+              } else if (matchingTodosToDelete.length === 1) {
+                await Todo.findByIdAndDelete(matchingTodosToDelete[0]._id);
+                responseMessage = `Deleted todo: "${matchingTodosToDelete[0].text}"`;
+              } else {
+                pendingUpdateRequest[userId] = {
+                  matchingTodos: matchingTodosToDelete,
+                  action: 'deletetodo',
+                };
+            
+                const matches = matchingTodosToDelete.map((todo) => todo.text).join(', ');
+                responseMessage = `There are multiple todos matching "${text}". Which one would you like to delete?\nMatches: ${matches}`;
+              }
+              break;
+
+      case 'show_health_records':
+        const records = await HealthRecord.find({ userId });
+        const visits = await DoctorVisit.find({ userId });
+        responseMessage = `Your health records: ${JSON.stringify({ records, visits })}`;
+        break;
+
+      case 'delete_health_record':
+        await HealthRecord.findByIdAndDelete(recordId);
+        responseMessage = `Deleted health record with ID: ${recordId}`;
+        break;
+
+      case 'schedule_meeting':
+        const { access_token } = req.headers;
+        const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+        oauth2Client.setCredentials({ access_token });
+
+        const event = await calendar.events.insert({
+          calendarId: 'primary',
+          resource: {
+            summary: text, 
+            start: { dateTime: `${date}T${time}:00`, timeZone: 'Asia/Kolkata' },
+            end: { dateTime: `${date}T${time}:30`, timeZone: 'Asia/Kolkata' },
+          },
+        });
+
+        responseMessage = `Meeting scheduled: "${text}" on ${date} at ${time}`;
+        break;
+
+      default:
+        responseMessage = "I didn't understand your request.";
+    }
+
+   
+    res.json({ reply: responseMessage });
+  } catch (error) {
+    console.error('Chat action error:', error);
+    res.status(500).json({ error: 'Something went wrong.' });
   }
 });
 
