@@ -18,6 +18,7 @@ const App = () => {
   const [showLogin, setShowLogin] = useState(false);
   const [showSignup, setShowSignup] = useState(false);
   const [googleToken,setGoogleToken]=useState(null);
+  const [rerenderSection, setRerenderSection] = useState(null);
 
   useEffect(() => {
     const savedToken = localStorage.getItem("token");
@@ -45,7 +46,7 @@ const App = () => {
           <GmailSection user={user} dummyEmails={dummyData.emails} setGoogleToken={setGoogleToken} onLogout={() => setGoogleToken(null)} />
         </div>
         <div className="col-span-2">
-          <TodoList user={user} />
+          <TodoList user={user} rerenderSection={rerenderSection} />
         </div>
         <div className="col-span-2">
           <CalendarSection user={user} dummyEvents={dummyData.events} googleToken={googleToken}/>
@@ -56,7 +57,7 @@ const App = () => {
         <HealthBar user={user} dummyHealthData={dummyData.health} />
       </div>
       <div className="fixed bottom-4 right-4 z-50">
-       <Assistant user={user} />
+       <Assistant user={user} setRerenderSection={setRerenderSection}/>
       </div>
 
     </div>

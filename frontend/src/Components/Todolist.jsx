@@ -2,14 +2,19 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import dummyData from "../assets/dummydata.json";
 
-const TodoList = ({ user }) => {
+const TodoList = ({ user,rerenderSection }) => {
   let [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState("");
   const [editingTask, setEditingTask] = useState(null);
   const [editedTaskName, setEditedTaskName] = useState("");
 
   useEffect(() => {
-    if (user) {
+    if (!user) {
+      setTasks(dummyData.tasks);
+      return;
+    }
+  
+    if (rerenderSection === null || rerenderSection?.includes('todo')) {
       axios
         .get("http://localhost:4001/todos", {
           headers: {
@@ -18,17 +23,14 @@ const TodoList = ({ user }) => {
         })
         .then((response) => {
           console.log(response.data);
-          
-            setTasks(response.data);
-          
+          setTasks(response.data);
         })
         .catch((error) => {
           console.error("Error fetching todos:", error);
         });
-    } else {
-      setTasks(dummyData.tasks);
     }
-  }, [user]);
+  }, [user, rerenderSection]);
+  
 
   // Add a new task
   const addTask = () => {

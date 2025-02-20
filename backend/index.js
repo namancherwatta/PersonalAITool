@@ -592,7 +592,7 @@ Guidelines:
     }
 
    
-    res.json({ reply: responseMessage });
+    res.json({ intent,reply: responseMessage });
   } catch (error) {
     console.error('Chat action error:', error);
     res.status(500).json({ error: 'Something went wrong.' });

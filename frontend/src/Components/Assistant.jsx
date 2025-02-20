@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MessageCircle, X } from 'lucide-react'; 
 
-const Assistant = ({ user }) => {
+const Assistant = ({ user,setRerenderSection }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
@@ -32,6 +32,9 @@ const Assistant = ({ user }) => {
       const data = await response.json();
       console.log(data)
       setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
+      if(data.intent){
+        setRerenderSection(data.intent)
+      }
     } catch (error) {
       console.error('Error fetching assistant response:', error);
     }
