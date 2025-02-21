@@ -425,23 +425,31 @@ Your output should ALWAYS be a valid JSON object, using one of these formats:
 2. **Add Multiple Todos (e.g., months)**:
    { "intent": "add_todo", "text": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] }
 
-3. **Update Todo**:
-   { "intent": "update_todo", "oldText": "Pay electricity bill", "newText": "Pay bill on 23rd Feb" }
+3. **Update Todo (Change Text OR Mark as Completed)**:
+   { "intent": "update_todo", "oldText": "Pay electricity bill", "newText": "Pay bill on 23rd Feb", "completed": true }
 
-4. **Delete Todo (Single)**:
+4. **Update Multiple Todos with Different New Texts**:
+   { "intent": "update_todo", "oldText": ["January", "February", "March", "April"], "newText": ["Jan", "Feb", "Mar", "Apr"], "completed": true }
+
+5. **Update Multiple Todos by Marking as Completed (No Text Change)**:
+   { "intent": "update_todo", "oldText": ["Buy groceries", "Clean the house"], "completed": true }
+
+6. **Delete Todo (Single)**:
    { "intent": "delete_todo", "text": "Call the doctor" }
 
-5.  **Delete Multiple Todos (e.g., months)**:
+7.  **Delete Multiple Todos (e.g., months)**:
    { "intent": "delete_todo", "text": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] }
 
-6. **Clarify if Ambiguous**:
+8. **Clarify if Ambiguous**:
    { "intent": "clarify", "question": "There are multiple todos with similar names. Which one would you like to update or delete?" }
 
-7. **Casual Chat**:
+9. **Casual Chat**:
    { "intent": "small_talk", "response": "Hello! What can I help you with today?" }
 
 Ensure that if the user asks to add multiple todos (e.g., 'Add 12 todos for each month'), you return a JSON array with each month's name.
 Ensure that if the user asks to delete multiple todos (e.g., 'Remove 12 todos for each month'), you return a JSON array with each month's name.
+If the user asks to **update multiple todos**, return:"oldText": [list of todos] newText: [corresponding new text] (only if renaming)"completed: true (only if marking as done)"
+If the user wants to update **all todos matching a pattern** (e.g., *all meetings*), return a **single pattern match**.
 
 If unsure, default to:
 { "intent": "unknown", "reply": "I didn't understand that. Can you clarify?" }
@@ -459,14 +467,14 @@ If unsure, default to:
       response_format: { type: 'json_object' },
     });
     console.log(gptResponse.choices[0].message.content)
-    const { intent, oldText, newText, completed, text, date, time, recordId, response, reply,question } = gptResponse.choices[0].message.content
+    const { intent, oldText, newText, completed, text, date, time, recordId, response, reply, question } = gptResponse.choices[0].message.content
       ? JSON.parse(gptResponse.choices[0].message.content)
       : {};
 
     console.log(`Detected Intent: ${intent}`, { text, date, time, recordId, oldText, newText, completed });
 
 
-    let responseMessage="";
+    let responseMessage = "";
 
     switch (intent) {
       case 'add_todo':
@@ -482,33 +490,75 @@ If unsure, default to:
         break;
 
 
-      case 'update_todo':
-        const matchingTodos = await Todo.find({
-          userId,
-          text: { $regex: oldText, $options: 'i' },
-        });
-
-        if (matchingTodos.length === 0) {
-          responseMessage = `No matching todo found for "${oldText}".`;
-        } else if (matchingTodos.length === 1) {
-          const updateFields = {};
-          if (newText !== undefined) updateFields.text = newText;
-          if (completed !== undefined) updateFields.completed = completed;
-
-          const updatedTodo = await Todo.findByIdAndUpdate(matchingTodos[0]._id, updateFields, { new: true });
-
-          responseMessage = `Todo updated: "${updatedTodo.text}"`;
-        } else {
-          pendingUpdateRequest[userId] = {
-            matchingTodos,
-            updateDetails: { newText, completed },
-            action: "updatetodo"
-          };
-
-          responseMessage = `There are multiple todos matching "${oldText}". Which one would you like to update?\nMatches: ${matchingTodos.map((t) => t.text).join(', ')}`;
-        }
-        break;
-
+        case 'update_todo':
+          let updateTodos = [];
+          let ambiguousUpdates = [];
+        
+          if (Array.isArray(oldText)) {
+            // Case 1: Bulk update for multiple specific todos
+            for (let i = 0; i < oldText.length; i++) {
+              const todoText = oldText[i];
+              const matchingTodos = await Todo.find({
+                userId,
+                text: { $regex: `^${todoText}$`, $options: 'i' },
+              });
+        
+              if (matchingTodos.length === 0) {
+                continue;
+              } else if (matchingTodos.length === 1) {
+                updateTodos.push({
+                  todo: matchingTodos[0],
+                  newText: Array.isArray(newText) ? newText[i] : newText, // Assign corresponding new text
+                });
+              } else {
+                ambiguousUpdates.push(...matchingTodos);
+              }
+            }
+          } else {
+            // Case 2: Update todos matching a pattern
+            const matchingTodos = await Todo.find({
+              userId,
+              text: { $regex: oldText, $options: 'i' },
+            });
+        
+            if (matchingTodos.length > 0) {
+              updateTodos = matchingTodos.map(todo => ({
+                todo,
+                newText: newText, // Apply same new text if only one is provided
+              }));
+            }
+          }
+        
+          // Apply updates
+          if (updateTodos.length > 0) {
+            for (const { todo, newText } of updateTodos) {
+              const updateFields = {};
+              if (newText !== undefined) updateFields.text = newText;
+              if (completed !== undefined) updateFields.completed = completed;
+        
+              await Todo.findByIdAndUpdate(todo._id, updateFields);
+            }
+        
+            responseMessage = `${updateTodos.length} todos updated: ${updateTodos.map(({ todo, newText }) => `"${todo.text}" → "${newText || todo.text}"`).join(', ')}`;
+          }
+        
+          // Handle ambiguous cases
+          if (ambiguousUpdates.length > 0) {
+            pendingUpdateRequest[userId] = {
+              matchingTodos: ambiguousUpdates,
+              updateDetails: { newText, completed },
+              action: 'updatetodo',
+            };
+        
+            responseMessage = `There are multiple todos matching your request. Which one would you like to update?\nMatches: ${ambiguousUpdates.map(t => `"${t.text}"`).join(', ')}`;
+          }
+        
+          if (!responseMessage) {
+            responseMessage = `No matching todos found for "${oldText}".`;
+          }
+        
+          break;
+        
 
       case 'clarify':
         responseMessage = `Clarification needed: ${question}`;
@@ -539,7 +589,7 @@ If unsure, default to:
           await Todo.deleteMany({ _id: { $in: toDeleteTodos.map(todo => todo._id) } });
         }
 
-      
+
         if (toDeleteTodos.length > 0) {
           responseMessage += `${toDeleteTodos.length} todos deleted: ${toDeleteTodos.map(t => `"${t.text}"`).join(', ')}. `;
         }
