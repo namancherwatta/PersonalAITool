@@ -24,6 +24,7 @@ const TodoList = ({ user,rerenderSection }) => {
         .then((response) => {
           console.log(response.data);
           setTasks(response.data);
+          
         })
         .catch((error) => {
           console.error("Error fetching todos:", error);

@@ -32,9 +32,17 @@ const Assistant = ({ user,setRerenderSection }) => {
       const data = await response.json();
       console.log(data)
       setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
-      if(data.intent){
-        setRerenderSection(data.intent)
+      if (data.intent) {
+        setRerenderSection(data.intent);
+      } else if (data.reply) {
+        const keywords = ["todo", "health", "gmail", "calendar"];
+        const matchedKeyword = keywords.find(keyword => data.reply.toLowerCase().includes(keyword));
+      
+        if (matchedKeyword) {
+          setRerenderSection(matchedKeyword);
+        }
       }
+      
     } catch (error) {
       console.error('Error fetching assistant response:', error);
     }
