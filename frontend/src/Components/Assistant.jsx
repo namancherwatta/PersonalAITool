@@ -35,7 +35,7 @@ const Assistant = ({ user,setRerenderSection }) => {
       if (data.intent) {
         setRerenderSection(data.intent);
       } else if (data.reply) {
-        const keywords = ["todo", "health", "gmail", "calendar"];
+        const keywords = ["todo", "health", "gmail", "calendar","doctor"];
         const matchedKeyword = keywords.find(keyword => data.reply.toLowerCase().includes(keyword));
       
         if (matchedKeyword) {

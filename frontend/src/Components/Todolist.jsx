@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import axios from "axios";
 import dummyData from "../assets/dummydata.json";
 
-const TodoList = ({ user,rerenderSection }) => {
+const TodoList = ({ user,rerenderSection,setRerenderSection }) => {
   let [tasks, setTasks] = useState([]);
   const [newTask, setNewTask] = useState("");
   const [editingTask, setEditingTask] = useState(null);
@@ -24,7 +24,7 @@ const TodoList = ({ user,rerenderSection }) => {
         .then((response) => {
           console.log(response.data);
           setTasks(response.data);
-          rerenderSection="todoDone"
+          setRerenderSection("todoDone")
         })
         .catch((error) => {
           console.error("Error fetching todos:", error);

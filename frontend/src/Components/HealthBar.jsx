@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
-const HealthBar = ({ user, dummyHealthData }) => {
+const HealthBar = ({ user, dummyHealthData,rerenderSection,setRerenderSection }) => {
   const [healthRecords, setHealthRecords] = useState([]);
   const [doctorVisits, setDoctorVisits] = useState([]);
   const [formData, setFormData] = useState({
@@ -24,20 +24,31 @@ const HealthBar = ({ user, dummyHealthData }) => {
   const [showVisitForm, setShowVisitForm] = useState(false); 
 
   useEffect(() => {
-    if (user) {
-      axios
-        .get('http://localhost:4001/health', { headers: { Authorization: user.token } })
-        .then((response) => {
-          setHealthRecords(cleanHealthData(response.data.records));
-          setDoctorVisits(response.data.visits);
-        })
-        .catch((error) => console.error('Error fetching health data:', error));
-    } else {
+    if (!user) {
       setHealthRecords(cleanHealthData(dummyHealthData[0].records));
       setDoctorVisits(dummyHealthData[0].visits);
+      return;
     }
-
-  }, [user]);
+  
+    if (rerenderSection === null || (rerenderSection?.includes('health'))||(rerenderSection?.includes("doctor"))) {
+      axios
+        .get("http://localhost:4001/health", {
+          headers: {
+            Authorization: user.token,
+          },
+        })
+        .then((response) => {
+          console.log(rerenderSection);
+          setHealthRecords(cleanHealthData(response.data.records));
+          setDoctorVisits(response.data.visits);
+          setRerenderSection("healthdoctorDone")
+          console.log(rerenderSection);
+        })
+        .catch((error) => {
+          console.error("Error fetching health data:", error);
+        });
+    }
+  }, [user, rerenderSection]);
 
   const cleanHealthData = (records) => {
     return records.map((record) => ({

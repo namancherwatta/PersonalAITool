@@ -381,34 +381,67 @@ app.post('/chat', async (req, res) => {
 
   //For re responses  
   if (pendingUpdateRequest[userId]) {
-    const { matchingTodos, updateDetails, action } = pendingUpdateRequest[userId];
+    const { matchingTodos, updateDetails, action,matchingRecords,matchingHRecords } = pendingUpdateRequest[userId];
+    let selectedTodo, selectedRecord,selectedHRecord;
 
-    const selectedTodo = matchingTodos.find((todo) => todo.text.toLowerCase() === message.toLowerCase());
-
-    if (!selectedTodo) {
+    if(matchingTodos){
+    selectedTodo = matchingTodos.find((todo) => todo.text.toLowerCase() === message.toLowerCase());
+    if (!selectedTodo ) {
       return res.json({
         reply: `Invalid selection. Please choose from: ${matchingTodos.map((t) => t.text).join(', ')}`,
       });
     }
+    }
 
+    if(matchingRecords){
+    selectedRecord = matchingRecords.find((record) => record.doctorName.toLowerCase() === message.toLowerCase());
+    console.log(selectedRecord)
+    if (!selectedRecord) {
+      return res.json({
+        reply: `Invalid selection. Please choose from: ${matchingRecords.map((t) => t.doctorName).join(', ')}`,
+      });
+    } 
+    
+  }
+   
+  
+  if (matchingHRecords) {
+    selectedHRecord = matchingHRecords.find((record) => 
+        record.bloodPressure === message || 
+        record.heartRate === message || 
+        record.sugarLevel === message
+    );
+
+    if (!selectedHRecord) {
+        return res.json({
+            reply: `Invalid selection. Please choose from: ${matchingHRecords.map((r) => `${r.date}:${r.bloodPressure}:${r.heartRate} bpm:${r.sugarLevel}`).join(', ')}`,
+        });
+    }
+}
+   
     let responseMessage;
-
+     console.log(action)
     if (action === 'updatetodo') {
       const updateFields = {};
       if (updateDetails.newText !== undefined) updateFields.text = updateDetails.newText;
       if (updateDetails.completed !== undefined) updateFields.completed = updateDetails.completed;
-      console.log(selectedTodo._id, updateFields)
       const updatedTodo = await Todo.findByIdAndUpdate(selectedTodo._id, updateFields, { new: true });
       responseMessage = `Todo updated: "${updatedTodo.text}"`;
     } else if (action === 'deletetodo') {
       await Todo.findByIdAndDelete(selectedTodo._id);
       responseMessage = `Deleted todo: "${selectedTodo.text}"`;
+    } else if (action === 'delete_health') {
+      await HealthRecord.findByIdAndDelete(selectedHRecord._id);
+      responseMessage = `Deleted health record from ${selectedHRecord.date} with readings: BP:${selectedHRecord.bloodPressure}, HR:${selectedHRecord.heartRate}, Sugar:${selectedHRecord.sugarLevel}`;
+    } else if (action === 'delete_doctor') {
+      console.log(selectedRecord)
+      await DoctorVisit.findByIdAndDelete(selectedRecord._id);
+      responseMessage = `Deleted Doctor visit from ${selectedRecord.date},${selectedRecord.doctorName} `;
     } else {
       responseMessage = "Sorry try again"
     }
 
     delete pendingUpdateRequest[userId];
-
     return res.json({ reply: responseMessage });
   }
 
@@ -446,6 +479,20 @@ Your output should ALWAYS be a valid JSON object, using one of these formats:
 9. **Casual Chat**:
    { "intent": "small_talk", "response": "Hello! What can I help you with today?" }
 
+10. **Add Health Record**:
+   { "intent": "add_health_record", "date": "2025-02-10", "bloodPressure": "120/80", "heartRate": "75 bpm", "sugarLevel": "95 mg/dL" }
+
+11. **Delete Health Record**:
+   { "intent": "delete_health_record", "recordId": "12345" }
+
+12. **Add Doctor Visit**:
+   { "intent": "add_doctor_visit", "date": "2025-02-10", "doctorName": "Smith", "reason": "General Checkup", "prescription": ["Vitamin D", "Metformin"] }
+
+13. **Delete Doctor Visit**:
+   { "intent": "delete_doctor_visit", "visitId": "12345" }
+
+
+
 Ensure that if the user asks to add multiple todos (e.g., 'Add 12 todos for each month'), you return a JSON array with each month's name.
 Ensure that if the user asks to delete multiple todos (e.g., 'Remove 12 todos for each month'), you return a JSON array with each month's name.
 If the user asks to **update multiple todos**, return:"oldText": [list of todos] newText: [corresponding new text] (only if renaming)"completed: true (only if marking as done)"
@@ -467,7 +514,7 @@ If unsure, default to:
       response_format: { type: 'json_object' },
     });
     console.log(gptResponse.choices[0].message.content)
-    const { intent, oldText, newText, completed, text, date, time, recordId, response, reply, question } = gptResponse.choices[0].message.content
+    const { intent, oldText, newText, completed, text, date, time, recordId, response, reply, question, bloodPressure, heartRate, sugarLevel, doctorName, reason, prescription } = gptResponse.choices[0].message.content
       ? JSON.parse(gptResponse.choices[0].message.content)
       : {};
 
@@ -490,75 +537,137 @@ If unsure, default to:
         break;
 
 
-        case 'update_todo':
-          let updateTodos = [];
-          let ambiguousUpdates = [];
-        
-          if (Array.isArray(oldText)) {
-            // Case 1: Bulk update for multiple specific todos
-            for (let i = 0; i < oldText.length; i++) {
-              const todoText = oldText[i];
-              const matchingTodos = await Todo.find({
-                userId,
-                text: { $regex: `^${todoText}$`, $options: 'i' },
-              });
-        
-              if (matchingTodos.length === 0) {
-                continue;
-              } else if (matchingTodos.length === 1) {
-                updateTodos.push({
-                  todo: matchingTodos[0],
-                  newText: Array.isArray(newText) ? newText[i] : newText, // Assign corresponding new text
-                });
-              } else {
-                ambiguousUpdates.push(...matchingTodos);
-              }
-            }
-          } else {
-            // Case 2: Update todos matching a pattern
+      case 'update_todo':
+        let updateTodos = [];
+        let ambiguousUpdates = [];
+
+        if (Array.isArray(oldText)) {
+          // Case 1: Bulk update for multiple specific todos
+          for (let i = 0; i < oldText.length; i++) {
+            const todoText = oldText[i];
             const matchingTodos = await Todo.find({
               userId,
-              text: { $regex: oldText, $options: 'i' },
+              text: { $regex: `^${todoText}$`, $options: 'i' },
             });
-        
-            if (matchingTodos.length > 0) {
-              updateTodos = matchingTodos.map(todo => ({
-                todo,
-                newText: newText, // Apply same new text if only one is provided
-              }));
+
+            if (matchingTodos.length === 0) {
+              continue;
+            } else if (matchingTodos.length === 1) {
+              updateTodos.push({
+                todo: matchingTodos[0],
+                newText: Array.isArray(newText) ? newText[i] : newText, // Assign corresponding new text
+              });
+            } else {
+              ambiguousUpdates.push(...matchingTodos);
             }
           }
-        
-          // Apply updates
-          if (updateTodos.length > 0) {
-            for (const { todo, newText } of updateTodos) {
-              const updateFields = {};
-              if (newText !== undefined) updateFields.text = newText;
-              if (completed !== undefined) updateFields.completed = completed;
-        
-              await Todo.findByIdAndUpdate(todo._id, updateFields);
-            }
-        
-            responseMessage = `${updateTodos.length} todos updated: ${updateTodos.map(({ todo, newText }) => `"${todo.text}" → "${newText || todo.text}"`).join(', ')}`;
+        } else {
+          // Case 2: Update todos matching a pattern
+          const matchingTodos = await Todo.find({
+            userId,
+            text: { $regex: oldText, $options: 'i' },
+          });
+
+          if (matchingTodos.length > 0) {
+            updateTodos = matchingTodos.map(todo => ({
+              todo,
+              newText: newText,
+            }));
           }
-        
-          // Handle ambiguous cases
-          if (ambiguousUpdates.length > 0) {
-            pendingUpdateRequest[userId] = {
-              matchingTodos: ambiguousUpdates,
-              updateDetails: { newText, completed },
-              action: 'updatetodo',
-            };
-        
-            responseMessage = `There are multiple todos matching your request. Which one would you like to update?\nMatches: ${ambiguousUpdates.map(t => `"${t.text}"`).join(', ')}`;
+        }
+
+        // Apply updates
+        if (updateTodos.length > 0) {
+          for (const { todo, newText } of updateTodos) {
+            const updateFields = {};
+            if (newText !== undefined) updateFields.text = newText;
+            if (completed !== undefined) updateFields.completed = completed;
+
+            await Todo.findByIdAndUpdate(todo._id, updateFields);
           }
-        
-          if (!responseMessage) {
-            responseMessage = `No matching todos found for "${oldText}".`;
-          }
-        
-          break;
-        
+
+          responseMessage = `${updateTodos.length} todos updated: ${updateTodos.map(({ todo, newText }) => `"${todo.text}" → "${newText || todo.text}"`).join(', ')}`;
+        }
+
+        // Handle ambiguous cases
+        if (ambiguousUpdates.length > 0) {
+          pendingUpdateRequest[userId] = {
+            matchingTodos: ambiguousUpdates,
+            updateDetails: { newText, completed },
+            action: 'updatetodo',
+          };
+
+          responseMessage = `There are multiple todos matching your request. Which one would you like to update?\nMatches: ${ambiguousUpdates.map(t => `"${t.text}"`).join(', ')}`;
+        }
+
+        if (!responseMessage) {
+          responseMessage = `No matching todos found for "${oldText}".`;
+        }
+
+        break;
+
+      case 'add_health_record':
+        const newHealthRecord = new HealthRecord({
+          userId,
+          date,
+          bloodPressure,
+          heartRate,
+          sugarLevel,
+        });
+
+        await newHealthRecord.save();
+        responseMessage = `Health record added for ${date}`;
+        break;
+
+      case 'delete_health_record':
+        const deleteRecords = await HealthRecord.find({ userId, date });
+       console.log(deleteRecords)
+        if (deleteRecords.length === 1) {
+          await HealthRecord.findByIdAndDelete(deleteRecords[0]._id);
+          responseMessage = `Deleted health record from ${date}`;
+        } else if (deleteRecords.length > 1) {
+          pendingUpdateRequest[userId] = {
+            matchingHRecords: deleteRecords,
+            action: 'delete_health',
+          };
+
+          responseMessage = `Multiple records found for ${date}. Which one would you like to delete? provide any reading of below\nMatches: ${deleteRecords.map(t => `"${t.date}:${t.bloodPressure}:${t.heartRate}:${t.sugarLevel}"`).join(', ')}`;
+        } else {
+          responseMessage = `No health record found for ${date}`;
+        }
+        break;
+
+      case 'add_doctor_visit':
+        const newDoctorVisit = new DoctorVisit({
+          userId,
+          date,
+          doctorName,
+          reason,
+          prescription,
+        });
+        await newDoctorVisit.save();
+        responseMessage = `Doctor visit added for ${date}`;
+        break;
+
+      case 'delete_doctor_visit':
+        const deletedoctorvisit = await DoctorVisit.find({ userId, date });
+
+        if (deletedoctorvisit.length === 1) {
+          await DoctorVisit.findByIdAndDelete(deletedoctorvisit[0]._id);
+          responseMessage = `Deleted Doctor visit from ${date}`;
+        } else if (deletedoctorvisit.length > 1) {
+          pendingUpdateRequest[userId] = {
+            matchingRecords: deletedoctorvisit,
+            action: 'delete_doctor',
+          };
+
+          responseMessage = `Multiple doctor visits found for ${date}. Which one would you like to delete?\nMatches: ${deletedoctorvisit.map(t => `"${t.doctorName}"`).join(', ')}`;
+        } else {
+          responseMessage = `No Doctor Visit found for ${date}`;
+        }
+        break;
+
+
 
       case 'clarify':
         responseMessage = `Clarification needed: ${question}`;
@@ -607,18 +716,6 @@ If unsure, default to:
           responseMessage = `No matching todos found for "${text}".`;
         }
 
-        break;
-
-
-      case 'show_health_records':
-        const records = await HealthRecord.find({ userId });
-        const visits = await DoctorVisit.find({ userId });
-        responseMessage = `Your health records: ${JSON.stringify({ records, visits })}`;
-        break;
-
-      case 'delete_health_record':
-        await HealthRecord.findByIdAndDelete(recordId);
-        responseMessage = `Deleted health record with ID: ${recordId}`;
         break;
 
       case 'schedule_meeting':

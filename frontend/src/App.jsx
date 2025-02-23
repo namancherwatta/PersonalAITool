@@ -46,7 +46,7 @@ const App = () => {
           <GmailSection user={user} dummyEmails={dummyData.emails} setGoogleToken={setGoogleToken} onLogout={() => setGoogleToken(null)} />
         </div>
         <div className="col-span-2">
-          <TodoList user={user} rerenderSection={rerenderSection} />
+          <TodoList user={user} rerenderSection={rerenderSection} setRerenderSection={setRerenderSection} />
         </div>
         <div className="col-span-2">
           <CalendarSection user={user} dummyEvents={dummyData.events} googleToken={googleToken}/>
@@ -54,7 +54,7 @@ const App = () => {
       </div>
 
       <div className="container mx-auto mt-4 p-4">
-        <HealthBar user={user} dummyHealthData={dummyData.health} />
+        <HealthBar user={user} dummyHealthData={dummyData.health} rerenderSection={rerenderSection}  setRerenderSection={setRerenderSection}/>
       </div>
       <div className="fixed bottom-4 right-4 z-50">
        <Assistant user={user} setRerenderSection={setRerenderSection}/>
