@@ -170,35 +170,6 @@ app.get("/emails", async (req, res) => {
   }
 });
 
-//   const { to, subject, message, access_token } = req.body;
-//   // console.log(to,subject,message,access_token)
-//   const auth = new google.auth.OAuth2();
-//   auth.setCredentials({ access_token : access_token});
-
-//   const gmail = google.gmail({ version: "v1", auth });
-
-//   const email = `
-//     To: ${to}
-//     Subject: ${subject}
-
-//     ${message}
-//   `;
-//   console.log(email)
-//   const encodedMessage = Buffer.from(email).toString("base64");
-
-//   try {
-//     await gmail.users.messages.send({
-//       userId: "me",
-//       requestBody: { raw: encodedMessage },
-//     });
-
-//     res.json({ success: true });
-//   } catch (error) {
-//     console.log(error)
-//     res.status(500).json({ error: error.message });
-//   }
-// });
-
 app.post("/send-email", async (req, res) => {
   try {
     const { to, subject, message, access_token, inReplyTo, references, threadId } = req.body;
@@ -272,8 +243,6 @@ app.get('/events', async (req, res) => {
     res.status(500).json({ error: error.response?.data || error.message });
   }
 });
-
-
 
 
 app.post('/create-event', async (req, res) => {
@@ -376,51 +345,52 @@ let pendingUpdateRequest = {};
 app.post('/chat', async (req, res) => {
   const { message } = req.body;
   const { userId } = jwt.verify(req.headers.authorization, process.env.JWT_SECRET);
+  const gtoken = req.headers.googletoken
   const authHeader = req.headers.authorization;
 
 
   //For re responses  
   if (pendingUpdateRequest[userId]) {
-    const { matchingTodos, updateDetails, action,matchingRecords,matchingHRecords } = pendingUpdateRequest[userId];
-    let selectedTodo, selectedRecord,selectedHRecord;
+    const { matchingTodos, updateDetails, action, matchingRecords, matchingHRecords } = pendingUpdateRequest[userId];
+    let selectedTodo, selectedRecord, selectedHRecord;
 
-    if(matchingTodos){
-    selectedTodo = matchingTodos.find((todo) => todo.text.toLowerCase() === message.toLowerCase());
-    if (!selectedTodo ) {
-      return res.json({
-        reply: `Invalid selection. Please choose from: ${matchingTodos.map((t) => t.text).join(', ')}`,
-      });
-    }
-    }
-
-    if(matchingRecords){
-    selectedRecord = matchingRecords.find((record) => record.doctorName.toLowerCase() === message.toLowerCase());
-    console.log(selectedRecord)
-    if (!selectedRecord) {
-      return res.json({
-        reply: `Invalid selection. Please choose from: ${matchingRecords.map((t) => t.doctorName).join(', ')}`,
-      });
-    } 
-    
-  }
-   
-  
-  if (matchingHRecords) {
-    selectedHRecord = matchingHRecords.find((record) => 
-        record.bloodPressure === message || 
-        record.heartRate === message || 
-        record.sugarLevel === message
-    );
-
-    if (!selectedHRecord) {
+    if (matchingTodos) {
+      selectedTodo = matchingTodos.find((todo) => todo.text.toLowerCase() === message.toLowerCase());
+      if (!selectedTodo) {
         return res.json({
-            reply: `Invalid selection. Please choose from: ${matchingHRecords.map((r) => `${r.date}:${r.bloodPressure}:${r.heartRate} bpm:${r.sugarLevel}`).join(', ')}`,
+          reply: `Invalid selection. Please choose from: ${matchingTodos.map((t) => t.text).join(', ')}`,
         });
+      }
     }
-}
-   
+
+    if (matchingRecords) {
+      selectedRecord = matchingRecords.find((record) => record.doctorName.toLowerCase() === message.toLowerCase());
+      console.log(selectedRecord)
+      if (!selectedRecord) {
+        return res.json({
+          reply: `Invalid selection. Please choose from: ${matchingRecords.map((t) => t.doctorName).join(', ')}`,
+        });
+      }
+
+    }
+
+
+    if (matchingHRecords) {
+      selectedHRecord = matchingHRecords.find((record) =>
+        record.bloodPressure === message ||
+        record.heartRate === message ||
+        record.sugarLevel === message
+      );
+
+      if (!selectedHRecord) {
+        return res.json({
+          reply: `Invalid selection. Please choose from: ${matchingHRecords.map((r) => `${r.date}:${r.bloodPressure}:${r.heartRate} bpm:${r.sugarLevel}`).join(', ')}`,
+        });
+      }
+    }
+
     let responseMessage;
-     console.log(action)
+    console.log(action)
     if (action === 'updatetodo') {
       const updateFields = {};
       if (updateDetails.newText !== undefined) updateFields.text = updateDetails.newText;
@@ -477,7 +447,7 @@ Your output should ALWAYS be a valid JSON object, using one of these formats:
    { "intent": "clarify", "question": "There are multiple todos with similar names. Which one would you like to update or delete?" }
 
 9. **Casual Chat**:
-   { "intent": "small_talk", "response": "Hello! What can I help you with today?" }
+   { "intent": "small_talk", "cresponse": "Hello! What can I help you with today?" }
 
 10. **Add Health Record**:
    { "intent": "add_health_record", "date": "2025-02-10", "bloodPressure": "120/80", "heartRate": "75 bpm", "sugarLevel": "95 mg/dL" }
@@ -491,6 +461,8 @@ Your output should ALWAYS be a valid JSON object, using one of these formats:
 13. **Delete Doctor Visit**:
    { "intent": "delete_doctor_visit", "visitId": "12345" }
 
+14. **Summarize mails**;
+   {"intent":"summarize_mails"}   
 
 
 Ensure that if the user asks to add multiple todos (e.g., 'Add 12 todos for each month'), you return a JSON array with each month's name.
@@ -514,7 +486,7 @@ If unsure, default to:
       response_format: { type: 'json_object' },
     });
     console.log(gptResponse.choices[0].message.content)
-    const { intent, oldText, newText, completed, text, date, time, recordId, response, reply, question, bloodPressure, heartRate, sugarLevel, doctorName, reason, prescription } = gptResponse.choices[0].message.content
+    const { intent, oldText, newText, completed, text, date, time, recordId, cresponse, reply, question, bloodPressure, heartRate, sugarLevel, doctorName, reason, prescription } = gptResponse.choices[0].message.content
       ? JSON.parse(gptResponse.choices[0].message.content)
       : {};
 
@@ -535,7 +507,6 @@ If unsure, default to:
         await Todo.insertMany(newTodos);
         responseMessage = `${newTodos.length} todos added: ${newTodos.map(t => `"${t.text}"`).join(', ')}`;
         break;
-
 
       case 'update_todo':
         let updateTodos = [];
@@ -621,7 +592,7 @@ If unsure, default to:
 
       case 'delete_health_record':
         const deleteRecords = await HealthRecord.find({ userId, date });
-       console.log(deleteRecords)
+        console.log(deleteRecords)
         if (deleteRecords.length === 1) {
           await HealthRecord.findByIdAndDelete(deleteRecords[0]._id);
           responseMessage = `Deleted health record from ${date}`;
@@ -666,8 +637,6 @@ If unsure, default to:
           responseMessage = `No Doctor Visit found for ${date}`;
         }
         break;
-
-
 
       case 'clarify':
         responseMessage = `Clarification needed: ${question}`;
@@ -718,6 +687,52 @@ If unsure, default to:
 
         break;
 
+      case 'summarize_mails':
+        const auth = new google.auth.OAuth2();
+        auth.setCredentials({ access_token: gtoken });
+        const gmail = google.gmail({ version: "v1", auth });
+        
+
+        const response = await gmail.users.messages.list({
+          userId: "me",
+          maxResults: 10,
+        });
+        const messages = response.data.messages || [];
+        const emailDetails = [];
+
+        for (let msg of messages) {
+          let message = await gmail.users.messages.get({
+            userId: "me",
+            id: msg.id,
+          });
+
+          const headers = message.data.payload.headers;
+          const from = headers.find(header => header.name === "From")?.value || "Unknown Sender";
+          const subject = headers.find(header => header.name === "Subject")?.value || "No Subject";
+          const snippet = message.data.snippet || "No preview available";
+          const mdate = new Date(parseInt(message.data.internalDate)).toLocaleString();
+          const threadId = message.data.threadId;
+          emailDetails.push({ from, subject, snippet, mdate, threadId });
+      
+        }
+      
+        try {
+          const generalGptResponse = await openai.chat.completions.create({
+            model: 'gpt-3.5-turbo-1106',
+            messages: [
+              { role: 'system', content: 'Summarize these emails in 2 sentences. And inform only if there are any important mail with high priority.' },
+              { role: 'user', content: `Summarize these emails:\n${JSON.stringify(emailDetails, null, 2)}` },
+            ],
+            max_tokens: 100,
+          });
+    
+          responseMessage = generalGptResponse.choices[0].message.content.trim();
+        } catch (generalError) {
+          console.error('General GPT fallback error:', generalError);
+          responseMessage = "Sorry, I am having trouble to summarize your mails?";
+        }
+      break;
+
       case 'schedule_meeting':
         const { access_token } = req.headers;
         const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
@@ -736,7 +751,7 @@ If unsure, default to:
         break;
 
       case 'small_talk':
-        responseMessage = response || "Hello!";
+        responseMessage = cresponse || "Hello!";
         break;
 
 

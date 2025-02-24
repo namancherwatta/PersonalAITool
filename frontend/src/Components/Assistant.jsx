@@ -23,9 +23,11 @@ const Assistant = ({ user,setRerenderSection }) => {
     setMessages((prev) => [...prev, userMessage]);
 
     try {
+      const gtoken=localStorage.getItem("gmail_token")
+      console.log(gtoken)
       const response = await fetch('http://localhost:4001/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: user?.token },
+        headers: { 'Content-Type': 'application/json', Authorization: user?.token,'googletoken': gtoken},
         body: JSON.stringify({ message: input }),
       });
      
