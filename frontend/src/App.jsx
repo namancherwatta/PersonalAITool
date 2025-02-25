@@ -43,7 +43,7 @@ const App = () => {
       
       <div className="container mx-auto p-4 grid grid-cols-7 mt-10 gap-4">
         <div className="col-span-3 ">
-          <GmailSection user={user} dummyEmails={dummyData.emails} setGoogleToken={setGoogleToken} onLogout={() => setGoogleToken(null)} />
+          <GmailSection user={user} dummyEmails={dummyData.emails} setGoogleToken={setGoogleToken} onLogout={() => setGoogleToken(null)} rerenderSection={rerenderSection} setRerenderSection={setRerenderSection} />
         </div>
         <div className="col-span-2">
           <TodoList user={user} rerenderSection={rerenderSection} setRerenderSection={setRerenderSection} />

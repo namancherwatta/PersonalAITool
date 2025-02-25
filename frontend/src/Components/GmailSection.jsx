@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { googleLogout, useGoogleLogin } from "@react-oauth/google";
 import axios from "axios";
 
-const GmailSection = ({ userEmail, dummyEmails,setGoogleToken,onLogout }) => {
+const GmailSection = ({ userEmail, dummyEmails,setGoogleToken,onLogout,rerenderSection,setRerenderSection }) => {
   const [emails, setEmails] = useState([]);
   const [token, setToken] = useState(null);
   const [replyTo, setReplyTo] = useState("");
@@ -73,14 +73,18 @@ const GmailSection = ({ userEmail, dummyEmails,setGoogleToken,onLogout }) => {
   };
 
   useEffect(() => {
+  
     const savedToken = localStorage.getItem("gmail_token");
     if (savedToken) {
       setToken(savedToken);
+      if (rerenderSection === null || rerenderSection?.includes('mail')) {
       fetchEmails(savedToken);
-      setGoogleToken(savedToken)
-      
+      setRerenderSection("maildone")
     }
-  }, []);
+      setGoogleToken(savedToken)  
+    }
+  
+  }, [rerenderSection]);
 
   const extractSenderName = (fromHeader, toHeader, userEmail) => {
     if (!fromHeader) return "Unknown";

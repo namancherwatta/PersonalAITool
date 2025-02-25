@@ -150,11 +150,11 @@ app.get("/emails", async (req, res) => {
   try {
     const response = await gmail.users.messages.list({
       userId: "me",
-      maxResults: 10,
+      maxResults: 25,
     });
 
     const messages = response.data.messages || [];
-    const emailDetails = [];
+    const threadMap = new Map();
 
     for (let msg of messages) {
       let message = await gmail.users.messages.get({
@@ -162,13 +162,27 @@ app.get("/emails", async (req, res) => {
         id: msg.id,
       });
 
-      emailDetails.push(message.data);
+      const threadId = message.data.threadId;
+      const internalDate = parseInt(message.data.internalDate);
+
+      if (!threadMap.has(threadId) || threadMap.get(threadId).internalDate < internalDate) {
+        threadMap.set(threadId, {
+          ...message.data,
+          internalDate: internalDate,
+        });
+      }
     }
-    res.json(emailDetails);
+
+    const latestEmails = Array.from(threadMap.values())
+      .sort((a, b) => b.internalDate - a.internalDate)
+      .slice(0, 10);
+
+    res.json(latestEmails);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 app.post("/send-email", async (req, res) => {
   try {
@@ -348,6 +362,32 @@ app.post('/chat', async (req, res) => {
   const gtoken = req.headers.googletoken
   const authHeader = req.headers.authorization;
 
+  //helper function
+  async function sendReply(to, subject, messageId, threadId, replyContent, gmail) {
+    const rawMessage = [
+      `To: ${to}`,
+      `Subject: Re: ${subject}`,
+      `In-Reply-To: ${messageId}`,
+      `References: ${messageId}`,
+      `Content-Type: text/plain; charset="UTF-8"`,
+      ``,
+      replyContent
+    ].join("\r\n");
+
+    const encodedMessage = Buffer.from(rawMessage).toString("base64")
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+
+    await gmail.users.messages.send({
+      userId: "me",
+      requestBody: {
+        raw: encodedMessage,
+        threadId: threadId,
+      },
+    });
+  }
+
 
   //For re responses  
   if (pendingUpdateRequest[userId]) {
@@ -462,13 +502,17 @@ Your output should ALWAYS be a valid JSON object, using one of these formats:
    { "intent": "delete_doctor_visit", "visitId": "12345" }
 
 14. **Summarize mails**;
-   {"intent":"summarize_mails"}   
+   {"intent":"summarize_mails"} 
+
+15. **Reply to mails**;
+   {"intent":"reply_mail","emailto":"Raj","emailsubject":"Workshop meeting","replyContent":"Hi, Raj. How are you...","replyAll":false}   
 
 
 Ensure that if the user asks to add multiple todos (e.g., 'Add 12 todos for each month'), you return a JSON array with each month's name.
 Ensure that if the user asks to delete multiple todos (e.g., 'Remove 12 todos for each month'), you return a JSON array with each month's name.
 If the user asks to **update multiple todos**, return:"oldText": [list of todos] newText: [corresponding new text] (only if renaming)"completed: true (only if marking as done)"
 If the user wants to update **all todos matching a pattern** (e.g., *all meetings*), return a **single pattern match**.
+If the user wants to send multiple reply mails(e.g., 'send reply mails to all mails from Raj or some person'), you return the parameter called "replyAll": true.
 
 If unsure, default to:
 { "intent": "unknown", "reply": "I didn't understand that. Can you clarify?" }
@@ -486,7 +530,7 @@ If unsure, default to:
       response_format: { type: 'json_object' },
     });
     console.log(gptResponse.choices[0].message.content)
-    const { intent, oldText, newText, completed, text, date, time, recordId, cresponse, reply, question, bloodPressure, heartRate, sugarLevel, doctorName, reason, prescription } = gptResponse.choices[0].message.content
+    const { intent, oldText, newText, completed, text, date, time, recordId, cresponse, reply, question, bloodPressure, heartRate, sugarLevel, doctorName, reason, prescription, emailto, emailsubject, replyContent, replyAll } = gptResponse.choices[0].message.content
       ? JSON.parse(gptResponse.choices[0].message.content)
       : {};
 
@@ -691,7 +735,7 @@ If unsure, default to:
         const auth = new google.auth.OAuth2();
         auth.setCredentials({ access_token: gtoken });
         const gmail = google.gmail({ version: "v1", auth });
-        
+
 
         const response = await gmail.users.messages.list({
           userId: "me",
@@ -713,9 +757,9 @@ If unsure, default to:
           const mdate = new Date(parseInt(message.data.internalDate)).toLocaleString();
           const threadId = message.data.threadId;
           emailDetails.push({ from, subject, snippet, mdate, threadId });
-      
+
         }
-      
+
         try {
           const generalGptResponse = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo-1106',
@@ -725,13 +769,115 @@ If unsure, default to:
             ],
             max_tokens: 100,
           });
-    
+
           responseMessage = generalGptResponse.choices[0].message.content.trim();
         } catch (generalError) {
           console.error('General GPT fallback error:', generalError);
           responseMessage = "Sorry, I am having trouble to summarize your mails?";
         }
-      break;
+        break;
+
+      case 'reply_mail':
+        try {
+          console.log(emailto, emailsubject, replyContent, replyAll);
+
+          const auth = new google.auth.OAuth2();
+          auth.setCredentials({ access_token: gtoken });
+          const gmail = google.gmail({ version: "v1", auth });
+
+          const response = await gmail.users.messages.list({
+            userId: "me",
+            maxResults: 25,
+          });
+
+          const messages = response.data.messages || [];
+          const threadMap = new Map();
+
+          for (let msg of messages) {
+            let message = await gmail.users.messages.get({
+              userId: "me",
+              id: msg.id,
+            });
+
+            const threadId = message.data.threadId;
+            const internalDate = parseInt(message.data.internalDate);
+
+            const headers = message.data.payload.headers;
+            const from = headers.find(header => header.name === "From")?.value || "Unknown Sender";
+            const subject = headers.find(header => header.name === "Subject")?.value || "No Subject";
+            const to = headers.find(header => header.name === "To")?.value || "Unknown Recipient";
+            const snippet = message.data.snippet || "No preview available";
+            const messageId = message.data.id;
+
+            const emailData = { from, to, subject, snippet, threadId, messageId, internalDate };
+
+            if (!threadMap.has(threadId) || threadMap.get(threadId).internalDate < internalDate) {
+              threadMap.set(threadId, emailData);
+            }
+          }
+
+
+          const latestEmails = Array.from(threadMap.values())
+            .sort((a, b) => b.internalDate - a.internalDate)
+            .slice(0, 10);
+
+
+            function cleanSubject(subject) {
+              return subject.replace(/^(re:\s*|fwd:\s*)+/gi, "").trim();
+            }
+            
+            function subjectMatches(subject, searchQuery) {
+              if (!searchQuery) return false;
+            
+              const subjectWords = cleanSubject(subject).toLowerCase().split(/\s+/);
+              const queryWords = searchQuery.toLowerCase().split(/\s+/);
+            
+              const matchCount = queryWords.filter(word => subjectWords.includes(word)).length;
+              return matchCount > 0; 
+            }
+            
+            
+            function cleanEmailAddress(email) {
+              return email.toLowerCase().replace(/['"<>\s]/g, "");
+            }
+            
+            let matchingEmails = latestEmails.filter(email =>
+              (emailto && cleanEmailAddress(email.from).includes(cleanEmailAddress(emailto))) &&
+              (emailsubject && subjectMatches(email.subject, emailsubject))
+            );
+            
+           
+            if (matchingEmails.length === 0 && !emailsubject) {
+              matchingEmails = latestEmails.filter(email =>
+                emailto && cleanEmailAddress(email.from).includes(cleanEmailAddress(emailto))
+              );
+            }
+
+          if (matchingEmails.length === 0) {
+            responseMessage = "No matching emails found to reply.";
+            break;
+          }
+
+          console.log("Matching Emails:", matchingEmails);
+
+
+          if (replyAll) {
+            for (let email of matchingEmails) {
+              await sendReply(email.from, email.subject, email.messageId, email.threadId, replyContent, gmail);
+            }
+            responseMessage = `Replied to all matching emails from ${emailto}.`;
+          } else {
+            const email = matchingEmails[0];
+            await sendReply(email.from, email.subject, email.messageId, email.threadId, replyContent, gmail);
+            responseMessage = `Replied to the email from ${email.from} with subject "${email.subject}".`;
+          }
+
+        } catch (error) {
+          console.error("Error in replying to mail:", error);
+          responseMessage = "Failed to send the reply.";
+        }
+
+        break;
 
       case 'schedule_meeting':
         const { access_token } = req.headers;
