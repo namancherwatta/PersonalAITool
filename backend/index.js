@@ -908,6 +908,9 @@ app.post('/chat', async (req, res) => {
         responseMessage = cresponse || "Hello!";
         break;
 
+      case 'unknown':
+        responseMessage = reply
+
       default:
         try {
           const generalGptResponse = await openai.chat.completions.create({
