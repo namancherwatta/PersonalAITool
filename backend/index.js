@@ -14,7 +14,7 @@ import { OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
 import axios from "axios"
 import { OpenAI } from "openai"
-
+import { gptPrompt } from './chatAssist/gptPrompt.js';
 
 dotenv.config();
 
@@ -455,70 +455,6 @@ app.post('/chat', async (req, res) => {
     return res.json({ reply: responseMessage });
   }
 
-
-  const gptPrompt = `You are a friendly and helpful assistant that can do two main things:
-1. Helpful assistant that extracts user intent and required details from messages related to a to-do list, health records, and other personal tasks.
-2. Engage in casual, friendly conversations when the user is not asking for a specific task.
-
-Your output should ALWAYS be a valid JSON object, using one of these formats:
-
-1. **Add Todo (Single Todo)**:
-   { "intent": "add_todo", "text": "Buy groceries" }
-
-2. **Add Multiple Todos (e.g., months)**:
-   { "intent": "add_todo", "text": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] }
-
-3. **Update Todo (Change Text OR Mark as Completed)**:
-   { "intent": "update_todo", "oldText": "Pay electricity bill", "newText": "Pay bill on 23rd Feb", "completed": true }
-
-4. **Update Multiple Todos with Different New Texts**:
-   { "intent": "update_todo", "oldText": ["January", "February", "March", "April"], "newText": ["Jan", "Feb", "Mar", "Apr"], "completed": true }
-
-5. **Update Multiple Todos by Marking as Completed (No Text Change)**:
-   { "intent": "update_todo", "oldText": ["Buy groceries", "Clean the house"], "completed": true }
-
-6. **Delete Todo (Single)**:
-   { "intent": "delete_todo", "text": "Call the doctor" }
-
-7.  **Delete Multiple Todos (e.g., months)**:
-   { "intent": "delete_todo", "text": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] }
-
-8. **Clarify if Ambiguous**:
-   { "intent": "clarify", "question": "There are multiple todos with similar names. Which one would you like to update or delete?" }
-
-9. **Casual Chat**:
-   { "intent": "small_talk", "cresponse": "Hello! What can I help you with today?" }
-
-10. **Add Health Record**:
-   { "intent": "add_health_record", "date": "2025-02-10", "bloodPressure": "120/80", "heartRate": "75 bpm", "sugarLevel": "95 mg/dL" }
-
-11. **Delete Health Record**:
-   { "intent": "delete_health_record", "recordId": "12345" }
-
-12. **Add Doctor Visit**:
-   { "intent": "add_doctor_visit", "date": "2025-02-10", "doctorName": "Smith", "reason": "General Checkup", "prescription": ["Vitamin D", "Metformin"] }
-
-13. **Delete Doctor Visit**:
-   { "intent": "delete_doctor_visit", "visitId": "12345" }
-
-14. **Summarize mails**;
-   {"intent":"summarize_mails"} 
-
-15. **Reply to mails**;
-   {"intent":"reply_mail","emailto":"Raj","emailsubject":"Workshop meeting","replyContent":"Hi, Raj. How are you...","replyAll":false}   
-
-
-Ensure that if the user asks to add multiple todos (e.g., 'Add 12 todos for each month'), you return a JSON array with each month's name.
-Ensure that if the user asks to delete multiple todos (e.g., 'Remove 12 todos for each month'), you return a JSON array with each month's name.
-If the user asks to **update multiple todos**, return:"oldText": [list of todos] newText: [corresponding new text] (only if renaming)"completed: true (only if marking as done)"
-If the user wants to update **all todos matching a pattern** (e.g., *all meetings*), return a **single pattern match**.
-If the user wants to send multiple reply mails(e.g., 'send reply mails to all mails from Raj or some person'), you return the parameter called "replyAll": true.
-
-If unsure, default to:
-{ "intent": "unknown", "reply": "I didn't understand that. Can you clarify?" }
-`;
-
-
   try {
     const gptResponse = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo-1106',
@@ -526,11 +462,11 @@ If unsure, default to:
         { role: 'system', content: gptPrompt },
         { role: 'user', content: message },
       ],
-      max_tokens: 100,
+      max_tokens: 256,
       response_format: { type: 'json_object' },
     });
     console.log(gptResponse.choices[0].message.content)
-    const { intent, oldText, newText, completed, text, date, time, recordId, cresponse, reply, question, bloodPressure, heartRate, sugarLevel, doctorName, reason, prescription, emailto, emailsubject, replyContent, replyAll } = gptResponse.choices[0].message.content
+    const { intent, oldText, newText, completed, text, date, time, recordId, cresponse, reply, question, bloodPressure, heartRate, sugarLevel, doctorName, reason, prescription, emailto, emailsubject, replyContent, replyAll, timeframe, events } = gptResponse.choices[0].message.content
       ? JSON.parse(gptResponse.choices[0].message.content)
       : {};
 
@@ -822,36 +758,36 @@ If unsure, default to:
             .slice(0, 10);
 
 
-            function cleanSubject(subject) {
-              return subject.replace(/^(re:\s*|fwd:\s*)+/gi, "").trim();
-            }
-            
-            function subjectMatches(subject, searchQuery) {
-              if (!searchQuery) return false;
-            
-              const subjectWords = cleanSubject(subject).toLowerCase().split(/\s+/);
-              const queryWords = searchQuery.toLowerCase().split(/\s+/);
-            
-              const matchCount = queryWords.filter(word => subjectWords.includes(word)).length;
-              return matchCount > 0; 
-            }
-            
-            
-            function cleanEmailAddress(email) {
-              return email.toLowerCase().replace(/['"<>\s]/g, "");
-            }
-            
-            let matchingEmails = latestEmails.filter(email =>
-              (emailto && cleanEmailAddress(email.from).includes(cleanEmailAddress(emailto))) &&
-              (emailsubject && subjectMatches(email.subject, emailsubject))
+          function cleanSubject(subject) {
+            return subject.replace(/^(re:\s*|fwd:\s*)+/gi, "").trim();
+          }
+
+          function subjectMatches(subject, searchQuery) {
+            if (!searchQuery) return false;
+
+            const subjectWords = cleanSubject(subject).toLowerCase().split(/\s+/);
+            const queryWords = searchQuery.toLowerCase().split(/\s+/);
+
+            const matchCount = queryWords.filter(word => subjectWords.includes(word)).length;
+            return matchCount > 0;
+          }
+
+
+          function cleanEmailAddress(email) {
+            return email.toLowerCase().replace(/['"<>\s]/g, "");
+          }
+
+          let matchingEmails = latestEmails.filter(email =>
+            (emailto && cleanEmailAddress(email.from).includes(cleanEmailAddress(emailto))) &&
+            (emailsubject && subjectMatches(email.subject, emailsubject))
+          );
+
+
+          if (matchingEmails.length === 0 && !emailsubject) {
+            matchingEmails = latestEmails.filter(email =>
+              emailto && cleanEmailAddress(email.from).includes(cleanEmailAddress(emailto))
             );
-            
-           
-            if (matchingEmails.length === 0 && !emailsubject) {
-              matchingEmails = latestEmails.filter(email =>
-                emailto && cleanEmailAddress(email.from).includes(cleanEmailAddress(emailto))
-              );
-            }
+          }
 
           if (matchingEmails.length === 0) {
             responseMessage = "No matching emails found to reply.";
@@ -879,27 +815,98 @@ If unsure, default to:
 
         break;
 
-      case 'schedule_meeting':
-        const { access_token } = req.headers;
+      case 'calendar_events':
+        console.log(timeframe)
+
+        try {
+          const response = await axios.get(
+            'https://www.googleapis.com/calendar/v3/calendars/primary/events',
+            {
+              headers: {
+                Authorization: `Bearer ${gtoken}`,
+              },
+              params: {
+                maxResults: 3,
+                orderBy: 'startTime',
+                singleEvents: true,
+                timeMin: new Date().toISOString(),
+              },
+            }
+          );
+
+
+          const events = response.data.items;
+
+          if (events.length === 0) {
+            responseMessage = "No upcoming events found.";
+          } else {
+            responseMessage = events.map(event => {
+              const title = event.summary || "No Title";
+              const startTime = event.start?.dateTime || event.start?.date || "Unknown Time";
+              return `📅 ${title}   -   ${startTime}`;
+            }).join("\n");
+          }
+        } catch (error) {
+          console.error('Error fetching calendar events:', error.response?.data || error.message);
+          responseMessage = `Error fetching calendar events: ${error.response?.data || error.message}`;
+        }
+        break;
+
+      case 'create_calendar_event':
+        oauth2Client.setCredentials({ access_token: gtoken });
         const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
-        oauth2Client.setCredentials({ access_token });
 
-        const event = await calendar.events.insert({
-          calendarId: 'primary',
-          resource: {
-            summary: text,
-            start: { dateTime: `${date}T${time}:00`, timeZone: 'Asia/Kolkata' },
-            end: { dateTime: `${date}T${time}:30`, timeZone: 'Asia/Kolkata' },
-          },
-        });
+        try {
+          const createdEvents = [];
+          const responseMessages = [];
 
-        responseMessage = `Meeting scheduled: "${text}" on ${date} at ${time}`;
+          for (const event of events) {
+            const { summary, description, startTime, endTime, attendees, recurrence } = event;
+
+            const eventData = {
+              summary,
+              description,
+              start: {
+                dateTime: `${startTime}:00`,
+                timeZone: 'Asia/Kolkata',
+              },
+              end: {
+                dateTime: `${endTime}:00`,
+                timeZone: 'Asia/Kolkata',
+              },
+              attendees: attendees?.map((email) => ({ email })) || [],
+              guestsCanInviteOthers: true,
+              guestsCanModify: true,
+              sendUpdates: 'all',
+            };
+
+            if (recurrence) {
+              eventData.recurrence = [recurrence];
+            }
+
+            const createdEvent = await calendar.events.insert({
+              calendarId: 'primary',
+              resource: eventData,
+            });
+
+            createdEvents.push(createdEvent.data);
+
+            responseMessages.push(
+              `Meeting scheduled: "${summary}" on ${startTime} to ${endTime} with ${attendees?.join(', ') || 'No attendees'}`
+            );
+          }
+
+          responseMessage = responseMessages.join('\n');
+
+        } catch (error) {
+          console.error('Failed to create events:', error.response?.data || error.message);
+          responseMessage = `Error scheduling meetings: ${error.response?.data || error.message}`;
+        }
         break;
 
       case 'small_talk':
         responseMessage = cresponse || "Hello!";
         break;
-
 
       default:
         try {

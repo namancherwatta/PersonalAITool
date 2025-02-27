@@ -45,10 +45,10 @@ const App = () => {
         <div className="col-span-3 ">
           <GmailSection user={user} dummyEmails={dummyData.emails} setGoogleToken={setGoogleToken} onLogout={() => setGoogleToken(null)} rerenderSection={rerenderSection} setRerenderSection={setRerenderSection} />
         </div>
-        <div className="col-span-2">
+        <div className="col-span-2 ">
           <TodoList user={user} rerenderSection={rerenderSection} setRerenderSection={setRerenderSection} />
         </div>
-        <div className="col-span-2">
+        <div className="col-span-2 ">
           <CalendarSection user={user} dummyEvents={dummyData.events} googleToken={googleToken}/>
         </div>
       </div>

@@ -115,7 +115,7 @@ const TodoList = ({ user,rerenderSection,setRerenderSection }) => {
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md">
+    <div className="bg-white p-4 rounded-lg shadow-md h-full">
       <h2 className="text-xl font-semibold mb-2">To-Do List</h2>
 
       {/* Add Task Input */}

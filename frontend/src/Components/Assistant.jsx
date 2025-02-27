@@ -55,7 +55,7 @@ const Assistant = ({ user,setRerenderSection }) => {
   return (
     <div className="fixed bottom-4 right-4 z-50">
       {isOpen ? (
-        <div className="bg-white shadow-lg rounded-lg w-80 p-4 border border-gray-200 relative">
+        <div className="bg-white shadow-lg rounded-lg w-96 p-4 border border-gray-200 relative">
           {/* Close Button */}
           <button
             onClick={toggleChat}
@@ -66,10 +66,10 @@ const Assistant = ({ user,setRerenderSection }) => {
 
           <h3 className="text-lg font-semibold mb-2">Assistant Chat</h3>
 
-          <div className="h-48 overflow-y-auto border p-2 mb-2">
+          <div className="h-60 overflow-y-auto border p-2 mb-2">
             {messages.map((msg, index) => (
               <div key={index} className={msg.role === 'user' ? 'text-right' : 'text-left'}>
-                <p className={msg.role === 'user' ? 'text-blue-600' : 'text-gray-800'}>
+                <p className={msg.role === 'user' ? 'text-blue-600' : 'text-gray-800'} style={{ whiteSpace: 'pre-line' }}>
                   {msg.content}
                 </p>
               </div>
