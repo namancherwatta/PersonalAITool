@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="180" viewBox="0 0 180 180" fill="none">
+  <style>
+    :root {
+      --primary-fill: #000;
+      --secondary-fill: #fff;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --primary-fill: #fff;
+        --secondary-fill: #000;
+      }
+    }
+  </style>
+  <rect width="180" height="180" fill="var(--primary-fill)" rx="90"/>
+  <g fill="var(--secondary-fill)">
+    <circle cx="90" cy="60" r="10"/> <!-- AI Head -->
+    <rect x="70" y="80" width="40" height="10" rx="2"/> <!-- To-Do List -->
+    <rect x="55" y="100" width="70" height="10" rx="2"/> <!-- Email -->
+    <rect x="65" y="120" width="50" height="10" rx="2"/> <!-- Calendar -->
+  </g>
+</svg>

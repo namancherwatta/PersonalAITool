@@ -34,33 +34,62 @@ const App = () => {
   
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-    <div className="min-h-screen bg-gray-100 py-10">
+      <div className="min-h-screen bg-gray-100 py-10">
+        {/* Navbar */}
+        <Navbar setShowLogin={setShowLogin} setShowSignup={setShowSignup} user={user} setUser={setUser} />
 
-      <Navbar setShowLogin={setShowLogin} setShowSignup={setShowSignup} user={user} setUser={setUser} />
-      
-      {showLogin && <Login setUser={setUser} setShowLogin={setShowLogin} />}
-      {showSignup && <Signup setUser={setUser} setShowSignup={setShowSignup} />}
-      
-      <div className="container mx-auto p-4 grid grid-cols-7 mt-10 gap-4">
-        <div className="col-span-3 ">
-          <GmailSection user={user} dummyEmails={dummyData.emails} setGoogleToken={setGoogleToken} onLogout={() => setGoogleToken(null)} rerenderSection={rerenderSection} setRerenderSection={setRerenderSection} />
+        {/* Modals */}
+        {showLogin && <Login setUser={setUser} setShowLogin={setShowLogin} />}
+        {showSignup && <Signup setUser={setUser} setShowSignup={setShowSignup} />}
+
+        {/* Main Content Grid */}
+        <div className="container mt-6 mx-auto p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-7 gap-4">
+          {/* Gmail Section */}
+          <div className="lg:col-span-3">
+            <GmailSection 
+              user={user} 
+              dummyEmails={dummyData.emails} 
+              setGoogleToken={setGoogleToken} 
+              onLogout={() => setGoogleToken(null)} 
+              rerenderSection={rerenderSection} 
+              setRerenderSection={setRerenderSection} 
+            />
+          </div>
+
+          {/* Todo List */}
+          <div className="lg:col-span-2">
+            <TodoList 
+              user={user} 
+              rerenderSection={rerenderSection} 
+              setRerenderSection={setRerenderSection} 
+            />
+          </div>
+
+          {/* Calendar Section */}
+          <div className="lg:col-span-2">
+            <CalendarSection 
+              user={user} 
+              dummyEvents={dummyData.events} 
+              googleToken={googleToken} 
+            />
+          </div>
         </div>
-        <div className="col-span-2 ">
-          <TodoList user={user} rerenderSection={rerenderSection} setRerenderSection={setRerenderSection} />
+
+        {/* Health Bar */}
+        <div className="container mx-auto mt-4 p-4">
+          <HealthBar 
+            user={user} 
+            dummyHealthData={dummyData.health} 
+            rerenderSection={rerenderSection} 
+            setRerenderSection={setRerenderSection} 
+          />
         </div>
-        <div className="col-span-2 ">
-          <CalendarSection user={user} dummyEvents={dummyData.events} googleToken={googleToken}/>
+
+        {/* Assistant */}
+        <div className="fixed bottom-4 right-4 z-50">
+          <Assistant user={user} setRerenderSection={setRerenderSection} />
         </div>
       </div>
-
-      <div className="container mx-auto mt-4 p-4">
-        <HealthBar user={user} dummyHealthData={dummyData.health} rerenderSection={rerenderSection}  setRerenderSection={setRerenderSection}/>
-      </div>
-      <div className="fixed bottom-4 right-4 z-50">
-       <Assistant user={user} setRerenderSection={setRerenderSection}/>
-      </div>
-
-    </div>
     </GoogleOAuthProvider>
   );
 };

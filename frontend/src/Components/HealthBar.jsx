@@ -162,12 +162,12 @@ const HealthBar = ({ user, dummyHealthData,rerenderSection,setRerenderSection })
 
   return (
     <div className="bg-white p-4 rounded shadow-md w-full">
-      <h2 className="text-lg font-semibold mb-4">Health Bar Section</h2>
+      <h2 className="text-lg font-semibold mb-4">Health Bar </h2>
 
       {/* Health Records Over Time */}
-      <div className="mb-6 grid grid-cols-3 gap-4">
+      <div className="mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
-          <h3 className="font-semibold mb-2">Blood Pressure Over Time</h3>
+          <h3 className="font-semibold mb-2">Blood Pressure </h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={healthRecords} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -180,7 +180,7 @@ const HealthBar = ({ user, dummyHealthData,rerenderSection,setRerenderSection })
         </div>
 
         <div>
-          <h3 className="font-semibold mb-2">Heart Rate Over Time</h3>
+          <h3 className="font-semibold mb-2">Heart Rate </h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={healthRecords} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -193,7 +193,7 @@ const HealthBar = ({ user, dummyHealthData,rerenderSection,setRerenderSection })
         </div>
 
         <div>
-          <h3 className="font-semibold mb-2">Sugar Level Over Time</h3>
+          <h3 className="font-semibold mb-2">Sugar Level </h3>
           <ResponsiveContainer width="100%" height={200}>
             <LineChart data={healthRecords} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" />
@@ -207,21 +207,21 @@ const HealthBar = ({ user, dummyHealthData,rerenderSection,setRerenderSection })
       </div>
 
 {/* Add and Delete Buttons */}
-<div className="mb-6 flex space-x-96 ml-80">
-  <button
-    onClick={() => setShowForm(!showForm)}
-    className="bg-blue-500 text-white px-4 py-2 rounded"
-  >
-    {showForm ? 'Cancel' : 'Add New Health Record'}
-  </button>
-  
-  <button
-    onClick={() => setShowDeleteList(!showDeleteList)}
-    className="bg-red-500 text-white px-4 py-2 rounded"
-  >
-    {showDeleteList ? 'Cancel' : 'Delete Health Record'}
-  </button>
-</div>
+<div className="mb-6 px-20 flex flex-col md:flex-row justify-center md:justify-between gap-4">
+    <button
+      onClick={() => setShowForm(!showForm)}
+      className="bg-blue-500 text-white px-4 py-2 rounded w-full md:w-auto"
+    >
+      {showForm ? 'Cancel' : 'Add New Health Record'}
+    </button>
+
+    <button
+      onClick={() => setShowDeleteList(!showDeleteList)}
+      className="bg-red-500 text-white px-4 py-2 rounded w-full md:w-auto"
+    >
+      {showDeleteList ? 'Cancel' : 'Delete Health Record'}
+    </button>
+  </div>
 
       {/* Conditional Form for Adding Health Records */}
       {showForm && (
@@ -279,8 +279,7 @@ const HealthBar = ({ user, dummyHealthData,rerenderSection,setRerenderSection })
         </form>
       )}
  
-       
-
+      
       {/* Delete List for Health Records */}
       {showDeleteList && (
         <div className="space-y-4">
@@ -307,14 +306,14 @@ const HealthBar = ({ user, dummyHealthData,rerenderSection,setRerenderSection })
   <h3 className="font-semibold mb-4">Doctor Visits Timeline</h3>
 
   {/* Container for the timeline */}
-  <div className="relative flex items-center justify-center w-full space-x-12">
+  <div className="relative mt-10 flex flex-wrap justify-center gap-8 md:gap-12">
     
     {/* Horizontal line */}
-    <div className="absolute inset-y-0 left-0 w-full border-t-2 border-gray-300"></div>
+    <div className="absolute inset-y-0 left-0 w-full md:border-t-2 border-gray-300  sm:border-t-0"></div>
     
     {/* Loop through doctor visits */}
     {doctorVisits.map((visit, index) => (
-      <div key={index} className="flex-none relative w-72 text-center">
+      <div key={index} className="flex-none relative w-72 text-center mb-7 md:border-t-2 border-gray-300 sm:border-0">
         
         {/* Dot representing the visit */}
         <div className="w-8 h-8 bg-blue-500 rounded-full border-4 border-white absolute top-[-20px] left-1/2 transform -translate-x-1/2"></div>
@@ -325,7 +324,7 @@ const HealthBar = ({ user, dummyHealthData,rerenderSection,setRerenderSection })
         </p>
 
         {/* Content of the visit below the dot */}
-        <div className="mt-8">
+        <div className="mt-4">
           <p className="font-semibold text-lg">{visit.reason}</p>
           <p className="text-sm text-gray-600">Doctor: {visit.doctorName}</p>
           <p className="text-sm text-gray-600">
@@ -338,7 +337,7 @@ const HealthBar = ({ user, dummyHealthData,rerenderSection,setRerenderSection })
 </div>
       
      {/* Add and Delete Doctor Visit Buttons */}
-<div className="mb-6 flex space-x-96 ml-80">
+<div className="mb-6 px-20 flex flex-col md:flex-row justify-center md:justify-between gap-4">
   <button
     onClick={() => setShowVisitForm(!showVisitForm)}
     className="bg-blue-500 text-white px-4 py-2 rounded"

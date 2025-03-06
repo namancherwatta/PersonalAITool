@@ -71,8 +71,8 @@ const CalendarSection = ({ googleToken, dummyEvents }) => {
   };
 
   return (
-    <div className="bg-white shadow-md rounded p-4 text-sm w-full">
-      <h2 className="text-lg font-semibold mb-2">Calendar Section</h2>
+    <div className="bg-white shadow-md rounded p-4 text-sm w-full h-full">
+      <h2 className="text-lg font-semibold mb-2">Calendar </h2>
 
       {googleToken ? (
         <>

@@ -122,7 +122,7 @@ const GmailSection = ({ userEmail, dummyEmails,setGoogleToken,onLogout,rerenderS
   return (
     <div className="bg-white shadow-md rounded p-4 text-sm w-full h-full">
   <div className="flex justify-between items-center mb-4">
-    <h2 className="text-lg font-semibold">Gmail Section</h2>
+    <h2 className="text-lg font-semibold">Gmail </h2>
     {token ? (
       <button className="bg-red-500 text-white px-3 py-2 rounded text-sm" onClick={logout}>
         Logout
