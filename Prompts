@@ -1,0 +1,100 @@
+You can try these prompts for AI Chat Assistant to do your activities
+To-Do List Prompts
+Single Todo Addition:
+"Add 'Buy groceries' to my to-do list."
+→ { "intent": "add_todo", "text": "Buy groceries" }
+
+Multiple Todos Addition:
+"Add todos for all months of the year."
+→ { "intent": "add_todo", "text": ["January", "February", ..., "December"] }
+
+Update a Todo:
+"Change 'Pay electricity bill' to 'Pay bill on 23rd Feb' and mark it as done."
+→ { "intent": "update_todo", "oldText": "Pay electricity bill", "newText": "Pay bill on 23rd Feb", "completed": true }
+
+Delete a Todo:
+"Remove 'Call the doctor' from my to-do list."
+→ { "intent": "delete_todo", "text": "Call the doctor" }
+
+Health Record Prompts
+Add a Health Record:
+"Log my health stats: BP 120/80, heart rate 75 bpm, sugar 95 mg/dL for today."
+→ { "intent": "add_health_record", "date": "2025-03-08", "bloodPressure": "120/80", "heartRate": "75 bpm", "sugarLevel": "95 mg/dL" }
+
+Delete a Health Record:
+"Delete my health record from Feb 10."
+→ { "intent": "delete_health_record", "recordId": "12345" }
+
+Doctor Visit Prompts
+Add a Doctor Visit:
+"I had a checkup with Dr. Smith on Feb 10. Prescribed Vitamin D and Metformin."
+→ { "intent": "add_doctor_visit", "date": "2025-02-10", "doctorName": "Smith", "reason": "General Checkup", "prescription": ["Vitamin D", "Metformin"] }
+
+Delete a Doctor Visit:
+"Remove my visit to Dr. Smith on Feb 10."
+→ { "intent": "delete_doctor_visit", "visitId": "12345" }
+
+Email Handling Prompts
+Summarize Emails:
+"Summarize my recent emails."
+→ { "intent": "summarize_mails" }
+
+Reply to an Email:
+"Reply to Raj's email about the workshop meeting saying 'Hi Raj, how are you...'"
+→ { "intent": "reply_mail", "emailto": "Raj", "emailsubject": "Workshop meeting", "replyContent": "Hi, Raj. How are you...", "replyAll": false }
+
+Reply to Multiple Emails:
+"Reply to all emails from Raj with 'Thanks for the update!'"
+→ { "intent": "reply_mail", "emailto": "Raj", "replyContent": "Thanks for the update!", "replyAll": true }
+
+Calendar Prompts
+Upcoming Events:
+"What events do I have coming up?"
+→ { "intent": "calendar_events" }
+
+Create a Calendar Event:
+"Schedule a project discussion meeting with John on March 2 from 6-7 PM."
+→
+
+json
+Copy
+Edit
+{
+  "intent": "create_calendar_event",
+  "events": [
+    {
+      "summary": "Meeting with John",
+      "description": "Project discussion",
+      "startTime": "2025-03-02T18:00",
+      "endTime": "2025-03-02T19:00",
+      "attendees": ["john@example.com"]
+    }
+  ]
+}
+Create a Recurring Calendar Event:
+"Schedule a weekly meeting with John on Tuesdays until March 31."
+→
+json
+Copy
+Edit
+{
+  "intent": "create_calendar_event",
+  "events": [
+    {
+      "summary": "Meeting with John",
+      "description": "Weekly project sync",
+      "startTime": "2025-03-05T18:00",
+      "endTime": "2025-03-05T19:00",
+      "attendees": ["john@example.com"],
+      "recurrence": "RRULE:FREQ=WEEKLY;BYDAY=TU;UNTIL=20250331T235959Z"
+    }
+  ]
+}
+Casual Chat
+General Conversation:
+"Hey, how's your day?"
+→ { "intent": "small_talk", "cresponse": "Hello! What can I help you with today?" }
+
+Clarification Needed:
+"Mark all meetings as completed." (If multiple meetings exist)
+→ { "intent": "clarify", "question": "There are multiple meetings. Which ones should be marked as completed?" }
