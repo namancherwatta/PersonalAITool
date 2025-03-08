@@ -140,4 +140,4 @@ This project is licensed under the MIT License.
 For any inquiries or suggestions, please reach out via [namanherwatta@gmail.com](mailto:namanherwatta@gmail.com).
 
 ## Note
-The Gpt model does not provide real time data and only answers based on model data.
+The GPT model does not provide real time data and only answers questions based on stored model data.
