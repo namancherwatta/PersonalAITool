@@ -140,7 +140,7 @@ This project is licensed under the MIT License.
 For any inquiries or suggestions, please reach out via [namanherwatta@gmail.com](mailto:namanherwatta@gmail.com).
 
 ## Note
-The GPT model does not provide real time data and only answers questions based on stored model data.
-You can also check out the live demo of this app from the link below:
-[https://personal-ai-tool-vercel-frontend.vercel.app/](https://personal-ai-tool-vercel-frontend.vercel.app)
-You need to sign up to use the AI Chat Assist. 😊 
+- The GPT model does not provide real time data and only answers questions based on stored model data.
+- You can also check out the live demo of this app from the link below:
+- [https://personal-ai-tool-vercel-frontend.vercel.app/](https://personal-ai-tool-vercel-frontend.vercel.app)
+- You need to sign up to use the AI Chat Assist. 😊 
